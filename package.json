@@ -1,6 +1,7 @@
 {
   "name": "stellar-realgold-wallet",
   "version": "1.0.0",
+  "homepage": "https://real8-crypto.github.io/silver-wallet",
   "private": true,
   "dependencies": {
     "@capacitor/android": "^7.4.3",
