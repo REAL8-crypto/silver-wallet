@@ -5,34 +5,16 @@ import {
   Button,
   Tabs,
   Tab,
-  List,
-  ListItem,
-  ListItemText,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
-  Alert,
-  IconButton,
-  Menu,
-  MenuItem,
-  Divider,
-  CircularProgress,
-  Paper
+  CircularProgress
 } from '@mui/material';
 import {
   Logout as LogoutIcon,
-  MoreVert as MoreIcon,
   Send as SendIcon,
-  SwapHoriz as SwapIcon,
-  AccountBalance as BalanceIcon,
-  Receipt as ReceiptIcon,
-  Pool as PoolIcon,
-  Settings as SettingsIcon,
-  Add as AddIcon,
-  Check as CheckIcon,
-  ContentCopy as ContentCopyIcon
+  SwapHoriz as SwapIcon
 } from '@mui/icons-material';
 import { useWallet } from '../contexts/WalletContext';
 import { useTranslation } from 'react-i18next';
@@ -45,7 +27,7 @@ const TabPanel = ({ children, value, index }: any) => (
 const TabContext = React.createContext({});
 
 const WalletDashboard: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const {
     publicKey,
     balance,
@@ -58,14 +40,8 @@ const WalletDashboard: React.FC = () => {
   } = useWallet();
 
   const [activeTab, setActiveTab] = useState('assets');
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [showPrivateKeyDialog, setShowPrivateKeyDialog] = useState(false);
-  const [showPrivateKey, setShowPrivateKey] = useState(false);
-  const [privateKeyCopied, setPrivateKeyCopied] = useState(false);
-  const [showSendDialog, setShowSendDialog] = useState(false);
-
-  // ...Rest of your component logic, no unused variables, hooks have correct dependencies
 
   const generateQRCode = async () => {
     if (publicKey) {
@@ -89,10 +65,40 @@ const WalletDashboard: React.FC = () => {
     if (showPrivateKeyDialog && publicKey) {
       generateQRCode();
     }
-  }, [showPrivateKeyDialog, publicKey]); // Only use actual dependencies
+  }, [showPrivateKeyDialog, publicKey]);
 
-  // ...Rest of your component render JSX
+  return (
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h4">{t('Wallet Dashboard')}</Typography>
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <>
+          <Typography>{t('Public Key')}: {publicKey}</Typography>
+          <Typography>{t('Balance')}: {balance}</Typography>
 
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<SendIcon />}
+            onClick={() => setShowPrivateKeyDialog(true)}
+          >
+            {t('Send Payment')}
+          </Button>
+
+          <Dialog open={showPrivateKeyDialog} onClose={() => setShowPrivateKeyDialog(false)}>
+            <DialogTitle>{t('Your QR Code')}</DialogTitle>
+            <DialogContent>
+              {qrCodeUrl && <img src={qrCodeUrl} alt="QR Code" />}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setShowPrivateKeyDialog(false)}>{t('Close')}</Button>
+            </DialogActions>
+          </Dialog>
+        </>
+      )}
+    </Box>
+  );
 };
 
 export default WalletDashboard;
