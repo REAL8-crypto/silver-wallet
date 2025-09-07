@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWallet } from '../contexts/WalletContext';
-import { Box, Button, TextField, Typography, Paper, Alert, Collapse, IconButton } from '@mui/material';
+import { Box, Button, TextField, Typography, Paper, Alert, IconButton } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import real8Logo from '../assets/real8-logo.png';
 
 type SetupStep = 'welcome' | 'create' | 'import' | 'backup';
 
@@ -27,7 +28,7 @@ const WalletSetup: React.FC = () => {
       importWallet(importKey);
       setStep('welcome');
     } catch (err) {
-      setError(t('error.invalidSecretKey'));
+      setError(t('error.invalidSecretKey') || 'Invalid secret key');
     }
   };
 
@@ -46,6 +47,19 @@ const WalletSetup: React.FC = () => {
     return (
       <Box sx={{ maxWidth: 500, mx: 'auto', mt: 8, p: { xs: 2, sm: 3 }, width: '100%' }}>
         <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
+          {/* REAL8 Logo */}
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+            <img 
+              src={real8Logo} 
+              alt="REAL8 Logo" 
+              style={{ 
+                height: 80, 
+                maxWidth: '300px',
+                objectFit: 'contain'
+              }} 
+            />
+          </Box>
+
           <Typography variant="h4" gutterBottom>
             {t('welcome')}
           </Typography>
@@ -126,7 +140,7 @@ const WalletSetup: React.FC = () => {
             fullWidth
             margin="normal"
             type="password"
-            placeholder={t('enterSecretKey')}
+            placeholder={t('enterSecretKey') || 'Enter your secret key'}
           />
           
           {error && (

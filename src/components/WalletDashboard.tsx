@@ -42,6 +42,8 @@ import {
 import { useWallet } from '../contexts/WalletContext';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'qrcode';
+import real8Logo from '../assets/real8-logo.png';
+import real8Icon from '../assets/real8-icon.png';
 
 // Placeholder components for tabs
 const TabPanel = ({ children, value, index }: any) => (
@@ -134,7 +136,7 @@ const WalletDashboard: React.FC = () => {
 
   const handleSend = async () => {
     if (!sendForm.destination || !sendForm.amount) {
-      setError(t('fillAllFields'));
+      setError(t('fillAllFields') || 'Please fill in all fields');
       return;
     }
     
@@ -150,20 +152,19 @@ const WalletDashboard: React.FC = () => {
       setError('');
     } catch (err) {
       console.error('Error sending payment:', err);
-      setError(t('error.sendingPayment'));
+      setError(t('error.sendingPayment') || 'Error sending payment');
     }
   };
 
   const handleAddTrustline = async () => {
     if (!trustlineForm.assetCode || !trustlineForm.issuer) {
-      setError(t('fillAllFields'));
+      setError(t('fillAllFields') || 'Please fill in all fields');
       return;
     }
-
     // Check if user has enough XLM for trustline (2 XLM minimum)
     const currentBalance = parseFloat(balance);
     if (currentBalance < 2) {
-      setError(t('trustlineRequirement'));
+      setError(t('trustlineRequirement') || 'You need to add a trustline for this asset first');
       return;
     }
     
@@ -174,13 +175,13 @@ const WalletDashboard: React.FC = () => {
       setError('');
     } catch (err) {
       console.error('Error adding trustline:', err);
-      setError(t('error.addingTrustline'));
+      setError(t('error.addingTrustline') || 'Error adding trustline');
     }
   };
 
   const handleJoinPool = async () => {
     if (!poolForm.amountA || !poolForm.amountB) {
-      setError(t('fillAllFields'));
+      setError(t('fillAllFields') || 'Please fill in all fields');
       return;
     }
     
@@ -201,7 +202,7 @@ const WalletDashboard: React.FC = () => {
       setError('');
     } catch (err) {
       console.error('Error joining pool:', err);
-      setError(t('error.joiningPool'));
+      setError(t('error.joiningPool') || 'Error joining liquidity pool');
     }
   };
 
@@ -209,27 +210,26 @@ const WalletDashboard: React.FC = () => {
     i18n.changeLanguage(lng);
   };
 
-  // Generate QR code when receive dialog opens
-  const generateQRCode = async () => {
-    if (publicKey) {
-      try {
-        const qrUrl = await QRCode.toDataURL(publicKey, {
-          width: 200,
-          margin: 2,
-          color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          }
-        });
-        setQrCodeUrl(qrUrl);
-      } catch (error) {
-        console.error('Error generating QR code:', error);
-      }
-    }
-  };
-
   // Generate QR code when dialog opens
   React.useEffect(() => {
+    const generateQRCode = async () => {
+      if (publicKey) {
+        try {
+          const qrUrl = await QRCode.toDataURL(publicKey, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          setQrCodeUrl(qrUrl);
+        } catch (error) {
+          console.error('Error generating QR code:', error);
+        }
+      }
+    };
+
     if (showReceiveDialog && publicKey) {
       generateQRCode();
     }
@@ -262,7 +262,7 @@ const WalletDashboard: React.FC = () => {
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1 }}>
           <img 
-            src="/real8-logo.png" 
+            src={real8Logo} 
             alt="REAL8" 
             style={{ 
               height: 40, 
@@ -421,7 +421,6 @@ const WalletDashboard: React.FC = () => {
             iconPosition="top"
           />
         </Tabs>
-
         <Box sx={{ p: { xs: 1, sm: 2 } }}>
           {activeTab === 'assets' && (
             <Box>
@@ -469,7 +468,6 @@ const WalletDashboard: React.FC = () => {
               </List>
             </Box>
           )}
-
           {activeTab === 'transactions' && (
             <Box>
               <Typography variant="h6" gutterBottom>
@@ -480,7 +478,6 @@ const WalletDashboard: React.FC = () => {
               </Typography>
             </Box>
           )}
-
           {activeTab === 'pools' && (
             <Box>
               <Box sx={{ 
@@ -507,7 +504,6 @@ const WalletDashboard: React.FC = () => {
               </Typography>
             </Box>
           )}
-
           {activeTab === 'settings' && (
             <Box>
               <Typography variant="h6" gutterBottom>
@@ -593,7 +589,6 @@ const WalletDashboard: React.FC = () => {
                   </Box>
                 )}
               </Box>
-
               <Button
                 variant="outlined"
                 color="error"
@@ -792,7 +787,7 @@ const WalletDashboard: React.FC = () => {
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <img 
-                  src="/real8-icon.png" 
+                  src={real8Icon} 
                   alt="REAL8" 
                   style={{ width: 20, height: 20 }}
                   onError={(e) => {
@@ -803,7 +798,6 @@ const WalletDashboard: React.FC = () => {
               </Box>
             </Box>
           </Box>
-
           <Box sx={{ mb: 2 }}>
             <Typography variant="subtitle2" gutterBottom>{t('assetPair')}</Typography>
             <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
