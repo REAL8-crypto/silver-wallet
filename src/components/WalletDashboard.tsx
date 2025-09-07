@@ -400,25 +400,21 @@ const WalletDashboard: React.FC = () => {
         >
           <Tab 
             icon={<AccountBalanceWallet sx={{ fontSize: { xs: 18, sm: 24 } }} />} 
-            label={t('assets')} 
             value="assets"
             iconPosition="top"
           />
           <Tab 
             icon={<CompareArrows sx={{ fontSize: { xs: 18, sm: 24 } }} />} 
-            label={t('transactions')} 
             value="transactions"
             iconPosition="top"
           />
           <Tab 
             icon={<PoolIcon sx={{ fontSize: { xs: 18, sm: 24 } }} />} 
-            label={t('pools')} 
             value="pools"
             iconPosition="top"
           />
           <Tab 
             icon={<SettingsIcon sx={{ fontSize: { xs: 18, sm: 24 } }} />} 
-            label={t('settings')} 
             value="settings"
             iconPosition="top"
           />
