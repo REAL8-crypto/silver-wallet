@@ -37,7 +37,9 @@ import {
   Settings as SettingsIcon,
   Add as AddIcon,
   Check as CheckIcon,
-  ContentCopy as ContentCopyIcon
+  ContentCopy as ContentCopyIcon,
+  AccountBalanceWallet, // Add this line
+  CompareArrows // Add this line
 } from '@mui/icons-material';
 import { useWallet } from '../contexts/WalletContext';
 import { useTranslation } from 'react-i18next';
