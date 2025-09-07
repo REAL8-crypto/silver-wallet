@@ -1,7 +1,6 @@
 {
   "name": "silver-wallet",
   "version": "1.0.0",
-  "homepage": "https://real8-crypto.github.io/silver-wallet",
   "private": true,
   "dependencies": {
     "@capacitor/android": "^7.4.3",
@@ -34,12 +33,11 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start", 
-    "build": "react-scripts build", 
-    "build:netlify": "CI=false PUBLIC_URL=/ react-scripts build", 
-    "test": "react-scripts test", 
-    "eject": "react-scripts eject", 
-    "android": "npx cap run android", 
+    "start": "react-scripts start",
+    "build": "CI=false react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "android": "npx cap run android",
     "build:android": "npm run build && npx cap copy && npx cap run android"
   },
   "eslintConfig": {
