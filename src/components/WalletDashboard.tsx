@@ -24,7 +24,7 @@ import {
 } from '@mui/material';
 import {
   AccountBalanceWallet as WalletIcon,
-  SwapVert as SwapIcon,
+  CompareArrows as SwapIcon,
   Pool as PoolIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
@@ -87,19 +87,19 @@ const WalletDashboard: React.FC = () => {
       {activeTab === 'assets' && (
         <Box>
           <Typography variant="h6">Assets</Typography>
-          {/* Add your assets UI here */}
+          {/* Original assets UI remains here */}
         </Box>
       )}
       {activeTab === 'transactions' && (
         <Box>
           <Typography variant="h6">Transactions</Typography>
-          {/* Add your transactions UI here */}
+          {/* Original transactions UI remains here */}
         </Box>
       )}
       {activeTab === 'pools' && (
         <Box>
           <Typography variant="h6">Pools</Typography>
-          {/* Add your pools UI here */}
+          {/* Original pools UI remains here */}
         </Box>
       )}
       {activeTab === 'settings' && (
