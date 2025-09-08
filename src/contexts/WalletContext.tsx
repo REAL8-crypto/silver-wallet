@@ -10,12 +10,13 @@ interface BalanceItem {
 interface WalletContextProps {
   publicKey: string | null;
   secretKey: string | null;
-  balance: string; // XLM balance as string for backward compatibility
-  balances: BalanceItem[]; // Full balances array
+  balance: string;
+  balances: BalanceItem[];
   loading: boolean;
   error: string | null;
   connectWallet: (secretKey: string) => Promise<void>;
-  createWallet: () => void; // Add this line
+  createWallet: () => void;
+  importWallet: (secretKey: string) => Promise<void>; // Add this line
   disconnect: () => void;
   addTrustline: (assetCode: string, issuer: string) => Promise<void>;
   sendPayment: (destination: string, amount: string, assetCode?: string, issuer?: string) => Promise<void>;
