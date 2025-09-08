@@ -15,6 +15,7 @@ interface WalletContextProps {
   loading: boolean;
   error: string | null;
   connectWallet: (secretKey: string) => Promise<void>;
+  createWallet: () => void; // Add this line
   disconnect: () => void;
   addTrustline: (assetCode: string, issuer: string) => Promise<void>;
   sendPayment: (destination: string, amount: string, assetCode?: string, issuer?: string) => Promise<void>;
