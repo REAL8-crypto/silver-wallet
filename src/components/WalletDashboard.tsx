@@ -57,8 +57,393 @@ const TabContext = React.createContext({});
 const WalletDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { 
+  publicKey, 
+  balance, 
+  balances, // Add this
+  disconnect, 
+  addTrustline, 
+  sendPayment, 
+  joinLiquidityPool,
+  loading,
+  error: walletError
+} = useWallet();
+  
+  const [activeTab, setActiveTab] = useState('assets');
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const [showPrivateKeyDialog, setShowPrivateKeyDialog] = useState(false);
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [privateKeyCopied, setPrivateKeyCopied] = useState(false);
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [showReceiveDialog, setShowReceiveDialog] = useState(false);
+  const [showAddAssetDialog, setShowAddAssetDialog] = useState(false);
+  const [showPoolDialog, setShowPoolDialog] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [sendForm, setSendForm] = useState({
+    destination: '',
+    amount: '',
+    asset: 'XLM',
+    memo: ''
+  });
+  const [trustlineForm, setTrustlineForm] = useState({
+    assetCode: 'REAL8',
+    issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD'
+  });
+  const [poolForm, setPoolForm] = useState({
+    assetA: 'XLM',
+    assetB: 'REAL8',
+    amountA: '',
+    amountB: ''
+  });
+  const [error, setError] = useState('');
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
+    setActiveTab(newValue);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyPrivateKey = () => {
+    const secretKey = localStorage.getItem('stellar_secret_key');
+    if (secretKey) {
+      navigator.clipboard.writeText(secretKey);
+      setPrivateKeyCopied(true);
+      setTimeout(() => setPrivateKeyCopied(false), 2000);
+    }
+  };
+
+  const handleShowPrivateKey = () => {
+    setShowPrivateKeyDialog(true);
+  };
+
+  const confirmShowPrivateKey = () => {
+    setShowPrivateKey(true);
+    setShowPrivateKeyDialog(false);
+    // Auto-hide after 30 seconds
+    setTimeout(() => {
+      setShowPrivateKey(false);
+    }, 30000);
+  };
+
+  const handleSend = async () => {
+    if (!sendForm.destination || !sendForm.amount) {
+      setError(t('fillAllFields') || 'Please fill in all fields');
+      return;
+    }
+    
+    try {
+      await sendPayment(
+        sendForm.destination,
+        sendForm.amount,
+        sendForm.asset,
+        sendForm.asset === 'XLM' ? undefined : trustlineForm.issuer
+      );
+      setShowSendDialog(false);
+      setSendForm({ destination: '', amount: '', asset: 'XLM', memo: '' });
+      setError('');
+    } catch (err) {
+      console.error('Error sending payment:', err);
+      setError(t('error.sendingPayment') || 'Error sending payment');
+    }
+  };
+
+  const handleAddTrustline = async () => {
+    if (!trustlineForm.assetCode || !trustlineForm.issuer) {
+      setError(t('fillAllFields') || 'Please fill in all fields');
+      return;
+    }
+    // Check if user has enough XLM for trustline (2 XLM minimum)
+    const nativeBalanceItem = balance.find(b => b.asset_code === 'XLM');
+    const currentBalance = nativeBalanceItem ? parseFloat(nativeBalanceItem.balance) : 0;
+    if (currentBalance < 2) {
+      setError(t('trustlineRequirement') || 'You need to add a trustline for this asset first');
+      return;
+    }
+    
+    try {
+      await addTrustline(trustlineForm.assetCode, trustlineForm.issuer);
+      setShowAddAssetDialog(false);
+      setTrustlineForm({ assetCode: 'REAL8', issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD' });
+      setError('');
+    } catch (err) {
+      console.error('Error adding trustline:', err);
+      setError(t('error.addingTrustline') || 'Error adding trustline');
+    }
+  };
+
+  const handleJoinPool = async () => {
+    if (!poolForm.amountA || !poolForm.amountB) {
+      setError(t('fillAllFields') || 'Please fill in all fields');
+      return;
+    }
+    
+    try {
+      await joinLiquidityPool(
+        poolForm.assetA,
+        poolForm.assetB,
+        poolForm.amountA,
+        poolForm.amountB
+      );
+      setShowPoolDialog(false);
+      setPoolForm({
+        assetA: 'XLM',
+        assetB: 'REAL8',
+        amountA: '',
+        amountB: ''
+      });
+      setError('');
+    } catch (err) {
+      console.error('Error joining pool:', err);
+      setError(t('error.joiningPool') || 'Error joining liquidity pool');
+    }
+  };
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
+
+  // Generate QR code when dialog opens
+  React.useEffect(() => {
+    const generateQRCode = async () => {
+      if (publicKey) {
+        try {
+          const qrUrl = await QRCode.toDataURL(publicKey, {
+            width: 200,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          setQrCodeUrl(qrUrl);
+        } catch (error) {
+          console.error('Error generating QR code:', error);
+        }
+      }
+    };
+
+    if (showReceiveDialog && publicKey) {
+      generateQRCode();
+    }
+  }, [showReceiveDialog, publicKey]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ 
+      maxWidth: 800, 
+      mx: 'auto', 
+      p: { xs: 1, sm: 2 },
+      width: '100%',
+      overflow: 'hidden'
+    }}>
+      {/* Header */}
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 3,
+        flexWrap: 'nowrap',
+        minWidth: 0
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1 }}>
+          <img 
+            src={real8Logo} 
+            alt="REAL8" 
+            style={{ 
+              height: 40, 
+              marginRight: 8,
+              maxWidth: '200px',
+              objectFit: 'contain'
+            }} 
+          />
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Language Flags */}
+          <IconButton 
+            onClick={() => changeLanguage('es')}
+            sx={{ 
+              fontSize: '1.5rem',
+              opacity: i18n.language === 'es' ? 1 : 0.6,
+              '&:hover': { opacity: 1 }
+            }}
+          >
+            🇪🇸
+          </IconButton>
+          <IconButton 
+            onClick={() => changeLanguage('en')}
+            sx={{ 
+              fontSize: '1.5rem',
+              opacity: i18n.language === 'en' ? 1 : 0.6,
+              '&:hover': { opacity: 1 }
+            }}
+          >
+            🇺🇸
+          </IconButton>
+          
+          {/* Menu */}
+          <IconButton onClick={handleMenuOpen} color="inherit">
+            <MoreIcon />
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+          >
+            <MenuItem 
+              component="a" 
+              href={i18n.language === 'en' ? "https://real8.org/en/buy-real8/" : "https://real8.org/es/compra-venta-de-real8/"} 
+              target="_blank"
+            >
+              {t('help')}
+            </MenuItem>
+            <MenuItem 
+              component="a" 
+              href={i18n.language === 'en' ? "https://real8.org/en/contact/" : "https://real8.org/es/contactar/"} 
+              target="_blank"
+            >
+              {t('contact')}
+            </MenuItem>
+            <MenuItem 
+              component="a" 
+              href={i18n.language === 'en' ? "https://real8.org/en/producto/eng/buy-real8/" : "https://real8.org/es/producto/esp/compra-real8/"} 
+              target="_blank"
+            >
+              {t('buyDirect')}
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={disconnect}>
+              <LogoutIcon sx={{ mr: 1 }} />
+              {t('disconnect')}
+            </MenuItem>
+          </Menu>
+        </Box>
+      </Box>
+
+      {/* Balance Card */}
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, textAlign: 'center' }}>
+        <Typography variant="subtitle1" color="textSecondary" gutterBottom>
+          {t('totalBalance')}
+        </Typography>
+        <Typography variant="h3" gutterBottom sx={{ 
+          wordBreak: 'break-word',
+          fontSize: { xs: '2rem', sm: '3rem' }
+        }}>
+          {balance} XLM
+        </Typography>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          gap: { xs: 1, sm: 2 }, 
+          mt: 2,
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: 'center'
+        }}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<SendIcon />}
+            onClick={() => setShowSendDialog(true)}
+            sx={{ 
+              minWidth: { sm: 120 },
+              width: { xs: '100%', sm: 'auto' }
+            }}
+          >
+            {t('send')}
+          </Button>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<SwapIcon />}
+            onClick={() => setShowReceiveDialog(true)}
+            sx={{ 
+              minWidth: { sm: 120 },
+              width: { xs: '100%', sm: 'auto' }
+            }}
+          >
+            {t('receive')}
+          </Button>
+        </Box>
+      </Paper>import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Tabs,
+  Tab,
+  List,
+  ListItem,
+  ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert,
+  IconButton,
+  Menu,
+  MenuItem,
+  Divider,
+  CircularProgress,
+  Paper
+} from '@mui/material';
+import {
+  ContentCopy as CopyIcon,
+  Logout as LogoutIcon,
+  Wallet as WalletIcon,
+  MoreVert as MoreIcon,
+  Language as LanguageIcon,
+  Send as SendIcon,
+  SwapHoriz as SwapIcon,
+  AccountBalance as BalanceIcon,
+  Receipt as ReceiptIcon,
+  Pool as PoolIcon,
+  Settings as SettingsIcon,
+  Add as AddIcon,
+  Check as CheckIcon,
+  ContentCopy as ContentCopyIcon,
+  AccountBalanceWallet,
+  CompareArrows
+} from '@mui/icons-material';
+import { useWallet } from '../contexts/WalletContext';
+import { useTranslation } from 'react-i18next';
+import QRCode from 'qrcode';
+import real8Logo from '../assets/real8-logo.png';
+import real8Icon from '../assets/real8-icon.png';
+
+// Placeholder components for tabs
+const TabPanel = ({ children, value, index }: any) => (
+  <div hidden={value !== index}>{value === index && children}</div>
+);
+
+const TabContext = React.createContext({});
+
+const WalletDashboard: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const { 
     publicKey, 
-    balance, 
+    balance,
+    balances,
     disconnect, 
     addTrustline, 
     sendPayment, 
@@ -164,10 +549,10 @@ const WalletDashboard: React.FC = () => {
       return;
     }
     // Check if user has enough XLM for trustline (2 XLM minimum)
-    const nativeBalanceItem = balances.find(b => b.asset_type === 'native');
+    const nativeBalanceItem = balances.find(b => b.asset_code === 'XLM');
     const currentBalance = nativeBalanceItem ? parseFloat(nativeBalanceItem.balance) : 0;
     if (currentBalance < 2) {
-      setError(t('trustlineRequirement') || 'You need to add a trustline for this asset first');
+      setError(t('trustlineRequirement') || 'You need at least 2 XLM to add a trustline');
       return;
     }
     
@@ -444,26 +829,43 @@ const WalletDashboard: React.FC = () => {
               </Box>
               
               <List>
-                <ListItem>
-                  <ListItemText 
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <img 
-                          src="https://s3.amazonaws.com/cdn.coindisco.com/currencies/logo/xlm_stellar.png" 
-                          alt="XLM" 
-                          style={{ width: 24, height: 24 }}
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                        Stellar Lumens (XLM)
-                      </Box>
-                    }
-                    secondary={`${balance} XLM`} 
-                  />
-                </ListItem>
-                <Divider />
-                {/* Additional assets would be listed here */}
+                {balances.map((balanceItem, index) => (
+                  <React.Fragment key={`${balanceItem.asset_code}-${balanceItem.asset_issuer || 'native'}`}>
+                    <ListItem>
+                      <ListItemText 
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {balanceItem.asset_code === 'XLM' ? (
+                              <img 
+                                src="https://s3.amazonaws.com/cdn.coindisco.com/currencies/logo/xlm_stellar.png" 
+                                alt="XLM" 
+                                style={{ width: 24, height: 24 }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : balanceItem.asset_code === 'REAL8' ? (
+                              <img 
+                                src={real8Icon} 
+                                alt="REAL8" 
+                                style={{ width: 24, height: 24 }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : null}
+                            {balanceItem.asset_code === 'XLM' 
+                              ? 'Stellar Lumens (XLM)' 
+                              : `${balanceItem.asset_code}`
+                            }
+                          </Box>
+                        }
+                        secondary={`${balanceItem.balance} ${balanceItem.asset_code}`} 
+                      />
+                    </ListItem>
+                    {index < balances.length - 1 && <Divider />}
+                  </React.Fragment>
+                ))}
               </List>
             </Box>
           )}

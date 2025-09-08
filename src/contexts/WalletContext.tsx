@@ -10,8 +10,9 @@ interface BalanceItem {
 interface WalletContextProps {
   publicKey: string | null;
   secretKey: string | null;
-  balance: BalanceItem[];
-  loading: boolean; // ✅ Added loading property
+  balance: string; // XLM balance as string for backward compatibility
+  balances: BalanceItem[]; // Full balances array
+  loading: boolean;
   error: string | null;
   connectWallet: (secretKey: string) => Promise<void>;
   disconnect: () => void;
@@ -25,18 +26,20 @@ const WalletContext = createContext<WalletContextProps | undefined>(undefined);
 export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [secretKey, setSecretKey] = useState<string | null>(null);
-  const [balance, setBalance] = useState<BalanceItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(false); // ✅ New state for loading
+  const [balances, setBalances] = useState<BalanceItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const server = new StellarSDK.Server("https://horizon-testnet.stellar.org");
 
-  // ✅ Fetch balance whenever publicKey changes
+  // Computed XLM balance
+  const balance = balances.find(b => b.asset_code === 'XLM')?.balance || '0';
+
   useEffect(() => {
     if (publicKey) {
       fetchBalance(publicKey);
     } else {
-      setBalance([]);
+      setBalances([]);
     }
   }, [publicKey]);
 
@@ -44,12 +47,12 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       setLoading(true);
       const account = await server.loadAccount(accountId);
-      const balances: BalanceItem[] = account.balances.map((b: any) => ({
+      const accountBalances: BalanceItem[] = account.balances.map((b: any) => ({
         asset_code: b.asset_type === "native" ? "XLM" : b.asset_code,
         asset_issuer: b.asset_issuer || null,
         balance: b.balance,
       }));
-      setBalance(balances);
+      setBalances(accountBalances);
     } catch (err) {
       console.error("Error fetching balance:", err);
       setError("Failed to fetch balance");
@@ -75,7 +78,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const disconnect = () => {
     setPublicKey(null);
     setSecretKey(null);
-    setBalance([]);
+    setBalances([]);
   };
 
   const addTrustline = async (assetCode: string, issuer: string) => {
@@ -166,7 +169,8 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         publicKey,
         secretKey,
         balance,
-        loading, // ✅ Provide it here
+        balances,
+        loading,
         error,
         connectWallet,
         disconnect,
