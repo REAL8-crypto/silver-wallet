@@ -3,18 +3,16 @@ import {
   Server,
   Keypair,
   TransactionBuilder,
+  Networks,
   Operation,
   Asset,
-  LiquidityPoolAsset,
-  getLiquidityPoolId,
-  LiquidityPoolFeeV18,
-  BASE_FEE,
-  Networks,
-} from "@stellar/stellar-sdk";
+  LiquidityPoolId,
+} from "stellar-sdk";
 
 interface BalanceItem {
-  asset_code: string;
-  asset_issuer?: string | null;
+  asset_type: string; // "native" or "credit_alphanum4"/"credit_alphanum12"
+  asset_code?: string;
+  asset_issuer?: string;
   balance: string;
 }
 
@@ -27,6 +25,7 @@ interface WalletContextProps {
   error: string | null;
   connectWallet: (secretKey: string) => Promise<void>;
   createWallet: () => void;
+  importWallet: (secretKey: string) => Promise<void>;
   disconnect: () => void;
   addTrustline: (assetCode: string, issuer: string) => Promise<void>;
   sendPayment: (
@@ -55,7 +54,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const server = new Server("https://horizon-testnet.stellar.org");
 
   // Computed XLM balance
-  const balance = balances.find((b) => b.asset_code === "XLM")?.balance || "0";
+  const balance = balances.find(b => b.asset_type === "native")?.balance || "0";
 
   useEffect(() => {
     if (publicKey) {
@@ -70,8 +69,9 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setLoading(true);
       const account = await server.loadAccount(accountId);
       const accountBalances: BalanceItem[] = account.balances.map((b: any) => ({
-        asset_code: b.asset_type === "native" ? "XLM" : b.asset_code,
-        asset_issuer: b.asset_issuer || null,
+        asset_type: b.asset_type,
+        asset_code: b.asset_code || undefined,
+        asset_issuer: b.asset_issuer || undefined,
         balance: b.balance,
       }));
       setBalances(accountBalances);
@@ -90,17 +90,11 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const keypair = Keypair.fromSecret(secret);
       setPublicKey(keypair.publicKey());
       setSecretKey(secret);
-    } catch (err) {
+    } catch {
       setError("Invalid secret key");
     } finally {
       setLoading(false);
     }
-  };
-
-  const createWallet = () => {
-    const keypair = Keypair.random();
-    setPublicKey(keypair.publicKey());
-    setSecretKey(keypair.secret());
   };
 
   const disconnect = () => {
@@ -129,8 +123,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       transaction.sign(Keypair.fromSecret(secretKey));
       await server.submitTransaction(transaction);
       await fetchBalance(publicKey);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError("Failed to add trustline");
     } finally {
       setLoading(false);
@@ -148,8 +141,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       const account = await server.loadAccount(publicKey);
       const fee = await server.fetchBaseFee();
-      const asset =
-        assetCode && issuer ? new Asset(assetCode, issuer) : Asset.native();
+      const asset = assetCode && issuer ? new Asset(assetCode, issuer) : Asset.native();
       const transaction = new TransactionBuilder(account, {
         fee: fee.toString(),
         networkPassphrase: Networks.TESTNET,
@@ -166,8 +158,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       transaction.sign(Keypair.fromSecret(secretKey));
       await server.submitTransaction(transaction);
       await fetchBalance(publicKey);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError("Failed to send payment");
     } finally {
       setLoading(false);
@@ -185,10 +176,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       const account = await server.loadAccount(publicKey);
       const fee = await server.fetchBaseFee();
-
-      const lpAsset = new LiquidityPoolAsset(assetA, assetB, LiquidityPoolFeeV18);
-      const poolId = getLiquidityPoolId("constant_product", assetA, assetB, LiquidityPoolFeeV18);
-
+      const poolId = LiquidityPoolId.fromAssets(assetA, assetB, 30);
       const transaction = new TransactionBuilder(account, {
         fee: fee.toString(),
         networkPassphrase: Networks.TESTNET,
@@ -204,12 +192,10 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         )
         .setTimeout(30)
         .build();
-
       transaction.sign(Keypair.fromSecret(secretKey));
       await server.submitTransaction(transaction);
       await fetchBalance(publicKey);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError("Failed to join liquidity pool");
     } finally {
       setLoading(false);
@@ -226,7 +212,8 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         loading,
         error,
         connectWallet,
-        createWallet,
+        createWallet: () => {}, // You can implement wallet generation here
+        importWallet: connectWallet, // Alias for now
         disconnect,
         addTrustline,
         sendPayment,
