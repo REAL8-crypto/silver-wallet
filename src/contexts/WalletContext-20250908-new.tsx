@@ -11,7 +11,7 @@ import {
   getLiquidityPoolId,
   LiquidityPoolFeeV18,
   BASE_FEE,
-} from 'stellar-sdk';
+} from '@stellar/stellar-sdk';
 
 interface WalletContextType {
   publicKey: string | null;

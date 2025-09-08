@@ -1,4 +1,4 @@
-import { Asset } from 'stellar-sdk'; 
+import { Asset } from '@stellar/stellar-sdk'; 
 import React, { useState, useEffect } from 'react';
 import {
   Box,
