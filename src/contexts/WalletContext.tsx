@@ -1,22 +1,33 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-// Removed unused import: import { useTranslation } from 'react-i18next';
-
-// For now, we'll use a simplified approach that doesn't require stellar-sdk
-// We'll implement the crypto functions manually or use stellar-base if needed
+// src/contexts/WalletContext.tsx
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import {
+  Keypair,
+  Server,
+  Networks,
+  TransactionBuilder,
+  Operation,
+  Asset,
+  LiquidityPoolAsset,
+  getLiquidityPoolId,
+  LiquidityPoolFeeV18,
+  BASE_FEE,
+} from 'stellar-sdk';
 
 interface WalletContextType {
   publicKey: string | null;
   secretKey: string | null;
   balance: string;
   network: 'testnet' | 'public';
-  createWallet: () => void;
-  importWallet: (secretKey: string) => void;
+  setNetwork: (n: 'testnet' | 'public') => void;
+  createWallet: (autoFund?: boolean) => Promise<void>;
+  importWallet: (secretKey: string) => Promise<void>;
   disconnect: () => void;
-  addTrustline: (assetCode: string, issuer: string) => Promise<void>;
-  sendPayment: (destination: string, amount: string, assetCode: string, issuer?: string) => Promise<void>;
-  joinLiquidityPool: (assetA: string, assetB: string, amountA: string, amountB: string) => Promise<void>;
+  addTrustline: (assetCode: string, issuer: string) => Promise<string>; // returns txHash
+  sendPayment: (destination: string, amount: string, assetCode?: string, issuer?: string) => Promise<string>; // returns txHash
+  joinLiquidityPool: (assetA: string, assetB: string, amountA: string, amountB: string) => Promise<string>; // returns txHash
   loading: boolean;
   error: string | null;
+  fundTestnetAccount: (publicKey: string) => Promise<string>; // friendbot
 }
 
 const defaultContext: WalletContextType = {
@@ -24,156 +35,134 @@ const defaultContext: WalletContextType = {
   secretKey: null,
   balance: '0',
   network: 'testnet',
-  createWallet: () => {},
-  importWallet: () => {},
+  setNetwork: () => {},
+  createWallet: async () => '',
+  importWallet: async () => '',
   disconnect: () => {},
-  addTrustline: async () => {},
-  sendPayment: async () => {},
-  joinLiquidityPool: async () => {},
+  addTrustline: async () => '',
+  sendPayment: async () => '',
+  joinLiquidityPool: async () => '',
   loading: false,
   error: null,
+  fundTestnetAccount: async () => '',
 };
 
 const WalletContext = createContext<WalletContextType>(defaultContext);
+
+// Horizon endpoints
+const HORIZON_TESTNET = 'https://horizon-testnet.stellar.org';
+const HORIZON_PUBLIC = 'https://horizon.stellar.org';
 
 export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [secretKey, setSecretKey] = useState<string | null>(null);
   const [balance, setBalance] = useState<string>('0');
+  const [network, setNetworkState] = useState<'testnet' | 'public'>('testnet');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  // const { t } = useTranslation(); // Commented out for now
+
+  // server is computed from network state
+  const server = new Server(network === 'testnet' ? HORIZON_TESTNET : HORIZON_PUBLIC);
+
+  // Compute network passphrase for TransactionBuilder
+  const networkPassphrase = network === 'testnet' ? Networks.TESTNET : Networks.PUBLIC;
 
   // Load wallet from localStorage on mount
   useEffect(() => {
     const storedSecretKey = localStorage.getItem('stellar_secret_key');
-    const storedPublicKey = localStorage.getItem('stellar_public_key');
-    
-    if (storedSecretKey && storedPublicKey) {
-      setSecretKey(storedSecretKey);
-      setPublicKey(storedPublicKey);
-      fetchBalance(storedPublicKey);
+    if (storedSecretKey) {
+      try {
+        const trimmed = storedSecretKey.trim();
+        const kp = Keypair.fromSecret(trimmed); // will throw if invalid
+        setSecretKey(trimmed);
+        setPublicKey(kp.publicKey());
+        fetchBalance(kp.publicKey()).catch(() => {});
+      } catch (err) {
+        console.error('Invalid stored secret key, removing it from storage.', err);
+        localStorage.removeItem('stellar_secret_key');
+        localStorage.removeItem('stellar_public_key');
+      }
     }
   }, []);
 
-  const fetchBalance = async (publicKey: string) => {
+  const setNetwork = (n: 'testnet' | 'public') => {
+    setNetworkState(n);
+    // You may want to clear / re-fetch balances when switching networks
+    if (publicKey) {
+      fetchBalance(publicKey).catch(() => {});
+    }
+  };
+
+  const fetchBalance = async (acctId: string) => {
     try {
       setLoading(true);
-      
-      // Skip balance fetching for mock wallets (they're not real Stellar accounts)
-      if (publicKey.startsWith('G') && publicKey.length === 56) {
-        // Direct HTTP call to Horizon API
-        const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${publicKey}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            setBalance('0 (Account not activated)');
-            return;
-          }
-          throw new Error('Failed to fetch account');
-        }
-        
-        const accountData = await response.json();
-        const xlmBalance = accountData.balances.find((b: any) => b.asset_type === 'native');
-        setBalance(xlmBalance ? xlmBalance.balance : '0');
+      const response = await server.loadAccount(acctId);
+      const xlmBal = response.balances.find((b: any) => b.asset_type === 'native');
+      setBalance(xlmBal ? xlmBal.balance : '0');
+      setError(null);
+    } catch (err: any) {
+      if (err && err.status === 404) {
+        setBalance('0 (Account not activated)');
       } else {
-        // Mock wallet - set demo balance
-        setBalance(' (Test) 0');
+        console.error('fetchBalance error:', err);
+        setError('Failed fetching balance');
       }
-      
-    } catch (err) {
-      console.error('Error fetching balance:', err);
-      setBalance(' (Test) 0');
-      setError('Demo wallet - balance fetching disabled');
     } finally {
       setLoading(false);
     }
   };
 
-  const generateKeypair = (): { publicKey: string; secretKey: string } => {
-    // This is a simplified implementation for testing
-    // In production, you should use proper Stellar cryptography
-    
-    // Generate 32 random bytes for the secret key
-    const secretBytes = new Uint8Array(32);
-    crypto.getRandomValues(secretBytes);
-    
-    // Convert to base32-like format (simplified)
-    const secretKey = 'S' + Array.from(secretBytes)
-      .map(b => b.toString(36).padStart(2, '0'))
-      .join('')
-      .toUpperCase()
-      .slice(0, 55);
-    
-    // Generate a mock public key (in production, derive from secret)
-    const publicBytes = new Uint8Array(32);
-    crypto.getRandomValues(publicBytes);
-    const publicKey = 'G' + Array.from(publicBytes)
-      .map(b => b.toString(36).padStart(2, '0'))
-      .join('')
-      .toUpperCase()
-      .slice(0, 55);
-    
-    return { publicKey, secretKey };
-  };
-
-  const validateSecretKey = (secretKey: string): boolean => {
-    // Basic validation - in production use proper Stellar validation
-    return secretKey.startsWith('S') && secretKey.length === 56;
-  };
-
-  const derivePublicKey = (secretKey: string): string => {
-    // Simplified derivation - in production use proper Stellar cryptography
-    // For now, we'll store both keys separately
-    return 'G' + secretKey.slice(1, 56);
-  };
-
-  const createWallet = () => {
+  // Create a new valid Stellar keypair and optionally auto-fund via Friendbot (testnet)
+  const createWallet = async (autoFund: boolean = false) => {
     try {
       setLoading(true);
-      const { publicKey, secretKey } = generateKeypair();
-      
-      setPublicKey(publicKey);
-      setSecretKey(secretKey);
-      
-      // Store both keys
-      localStorage.setItem('stellar_secret_key', secretKey);
-      localStorage.setItem('stellar_public_key', publicKey);
-      
-      setBalance('0'); // New wallet has 0 balance
+      const pair = Keypair.random();
+      const pub = pair.publicKey();
+      const sec = pair.secret();
+
+      setPublicKey(pub);
+      setSecretKey(sec);
+      localStorage.setItem('stellar_secret_key', sec);
+      localStorage.setItem('stellar_public_key', pub);
+      setBalance('0');
       setError(null);
-      
+
+      // optional auto-fund on testnet via friendbot
+      if (autoFund && network === 'testnet') {
+        try {
+          await fundTestnetAccount(pub);
+          await fetchBalance(pub);
+        } catch (ferr) {
+          // friendbot failure is non-fatal; surface an error but keep keys
+          console.warn('Friendbot failed:', ferr);
+          setError('Friendbot funding failed (see console).');
+        }
+      }
     } catch (err) {
-      setError('Failed to create wallet');
-      console.error('Error creating wallet:', err);
+      console.error('createWallet error:', err);
+      setError('Failed to create wallet.');
     } finally {
       setLoading(false);
     }
   };
 
-  const importWallet = (secretKey: string) => {
+  // import secret (validates using Keypair.fromSecret)
+  const importWallet = async (secret: string) => {
     try {
       setLoading(true);
-      
-      if (!validateSecretKey(secretKey)) {
-        throw new Error('Invalid secret key format');
-      }
-      
-      const publicKey = derivePublicKey(secretKey);
-      
-      setSecretKey(secretKey);
-      setPublicKey(publicKey);
-      
-      // Store both keys
-      localStorage.setItem('stellar_secret_key', secretKey);
-      localStorage.setItem('stellar_public_key', publicKey);
-      
-      fetchBalance(publicKey);
+      const trimmed = secret.trim();
+      const kp = Keypair.fromSecret(trimmed); // throws if invalid
+      setSecretKey(trimmed);
+      setPublicKey(kp.publicKey());
+      localStorage.setItem('stellar_secret_key', trimmed);
+      localStorage.setItem('stellar_public_key', kp.publicKey());
       setError(null);
-      
+      await fetchBalance(kp.publicKey());
+      return kp.publicKey();
     } catch (err) {
-      setError('Invalid secret key');
-      console.error('Error importing wallet:', err);
+      console.error('importWallet error:', err);
+      setError('Invalid Stellar secret key.');
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -187,74 +176,211 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     localStorage.removeItem('stellar_public_key');
   };
 
-  const addTrustline = async (assetCode: string, issuer: string) => {
-    if (!publicKey || !secretKey) {
-      throw new Error('No wallet connected');
+  // Friendbot helper (testnet only) - returns submitted response text (tx hash / friendbot response)
+  const fundTestnetAccount = async (pub: string): Promise<string> => {
+    if (network !== 'testnet') {
+      throw new Error('Friendbot is only available on testnet');
     }
-    
+    const url = `https://friendbot.stellar.org?addr=${encodeURIComponent(pub)}`;
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => 'friendbot error');
+      throw new Error(`Friendbot failed: ${resp.status} ${txt}`);
+    }
+    const data = await resp.json();
+    return data.hash || JSON.stringify(data);
+  };
+
+  // Add trustline for a custom credit asset
+  const addTrustline = async (assetCode: string, issuer: string): Promise<string> => {
+    if (!publicKey || !secretKey) throw new Error('No wallet connected');
+
     try {
       setLoading(true);
-      
-      // This is a placeholder implementation
-      // In production, you'd build and submit a changeTrust transaction
-      console.log(`Adding trustline for ${assetCode}:${issuer}`);
-      
-      // Simulate success
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setError('Trustline operations require stellar-sdk implementation');
-      
-    } catch (err) {
-      console.error('Error adding trustline:', err);
-      setError('Failed to add trustline');
+      const sourceAccount = await server.loadAccount(publicKey);
+      // parse asset: assetCode + issuer
+      const asset = new Asset(assetCode, issuer);
+      const tx = new TransactionBuilder(sourceAccount, {
+        fee: BASE_FEE.toString(),
+        networkPassphrase,
+      })
+        .addOperation(
+          Operation.changeTrust({
+            asset,
+            limit: undefined, // default max
+          })
+        )
+        .setTimeout(30)
+        .build();
+
+      const signer = Keypair.fromSecret(secretKey);
+      tx.sign(signer);
+
+      const res = await server.submitTransaction(tx);
+      // refresh balance / trustlines
+      await fetchBalance(publicKey);
+      setError(null);
+      return res.hash;
+    } catch (err: any) {
+      console.error('addTrustline error:', err);
+      setError(err?.message || 'Failed to add trustline');
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const sendPayment = async (destination: string, amount: string, assetCode: string = 'XLM', issuer: string = '') => {
-    if (!publicKey || !secretKey) {
-      throw new Error('No wallet connected');
-    }
-    
+  // Send payment (native XLM or custom asset)
+  const sendPayment = async (
+    destination: string,
+    amount: string,
+    assetCode: string = 'XLM',
+    issuer: string = ''
+  ): Promise<string> => {
+    if (!publicKey || !secretKey) throw new Error('No wallet connected');
+
     try {
       setLoading(true);
-      
-      console.log(`Sending ${amount} ${assetCode} to ${destination}`);
-      
-      // Simulate success
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setError('Payment operations require stellar-sdk implementation');
-      
-    } catch (err) {
-      console.error('Error sending payment:', err);
-      setError('Failed to send payment');
+      const sourceAccount = await server.loadAccount(publicKey);
+
+      let asset = undefined;
+      if (assetCode === 'XLM' || assetCode.toLowerCase() === 'native') {
+        // native payment
+      } else {
+        asset = new Asset(assetCode, issuer);
+      }
+
+      const op =
+        asset === undefined
+          ? Operation.payment({ destination, asset: Asset.native(), amount })
+          : Operation.payment({ destination, asset, amount });
+
+      const tx = new TransactionBuilder(sourceAccount, {
+        fee: BASE_FEE.toString(),
+        networkPassphrase,
+      })
+        .addOperation(op)
+        .setTimeout(30)
+        .build();
+
+      const signer = Keypair.fromSecret(secretKey);
+      tx.sign(signer);
+
+      const res = await server.submitTransaction(tx);
+      // optionally refresh balance
+      await fetchBalance(publicKey);
+      setError(null);
+      return res.hash;
+    } catch (err: any) {
+      console.error('sendPayment error:', err);
+      setError(err?.message || 'Failed to send payment');
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const joinLiquidityPool = async (assetA: string, assetB: string, amountA: string, amountB: string) => {
-    if (!publicKey || !secretKey) {
-      throw new Error('No wallet connected');
-    }
-    
+  /**
+   * Join a constant-product liquidity pool (deposit).
+   *
+   * assetA and assetB are strings with the format:
+   *  - "XLM" or "native" for the native asset, or
+   *  - "CODE:ISSUER" for credit assets (e.g. "REAL8:GDU...").
+   *
+   * The method:
+   *  - parses the assets,
+   *  - ensures trust lines exist (changeTrust for credit assets and the pool trustline),
+   *  - computes the pool id, and
+   *  - submits a liquidityPoolDeposit operation with the provided max amounts.
+   *
+   * Returns the transaction hash when successful.
+   */
+  const joinLiquidityPool = async (
+    assetA: string,
+    assetB: string,
+    amountA: string,
+    amountB: string
+  ): Promise<string> => {
+    if (!publicKey || !secretKey) throw new Error('No wallet connected');
+
+    const parseAsset = (s: string): Asset => {
+      const trimmed = s.trim();
+      if (trimmed === 'XLM' || trimmed.toLowerCase() === 'native') {
+        return Asset.native();
+      }
+      const [code, issuer] = trimmed.split(':');
+      if (!code || !issuer) throw new Error(`Invalid asset string: ${s}. Use CODE:ISSUER or XLM`);
+      return new Asset(code, issuer);
+    };
+
     try {
       setLoading(true);
-      
-      console.log(`Joining liquidity pool: ${assetA}/${assetB}`);
-      
-      // Simulate success
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setError('Liquidity pool operations require stellar-sdk implementation');
-      
-    } catch (err) {
-      console.error('Error joining liquidity pool:', err);
-      setError('Failed to join liquidity pool');
+      const assetObjA = parseAsset(assetA);
+      const assetObjB = parseAsset(assetB);
+
+      // Ensure lexicographic order rule (getLiquidityPoolId enforces assetA < assetB)
+      // getLiquidityPoolId checks Asset.compare internally - if assets are in wrong order it will throw.
+      const poolIdBuf = getLiquidityPoolId('constant_product', {
+        assetA: assetObjA,
+        assetB: assetObjB,
+        fee: LiquidityPoolFeeV18,
+      });
+      const poolIdHex = poolIdBuf.toString('hex');
+
+      const sourceAccount = await server.loadAccount(publicKey);
+
+      // Build tx:
+      // 1) changeTrust for each credit asset if needed (skipped for native)
+      // 2) changeTrust for the liquidity pool shares (use LiquidityPoolAsset)
+      // 3) liquidityPoolDeposit (with maxAmountA/maxAmountB)
+      const txBuilder = new TransactionBuilder(sourceAccount, {
+        fee: BASE_FEE.toString(),
+        networkPassphrase,
+      });
+
+      // If assetA or assetB is credit (non-native), add changeTrust for them to be safe.
+      const addChangeTrustIfCredit = (assetObj: Asset) => {
+        if (assetObj.isNative && assetObj.isNative()) return;
+        txBuilder.addOperation(
+          Operation.changeTrust({
+            asset: assetObj,
+          })
+        );
+      };
+
+      // Add changeTrust for the two credit assets if they are non-native
+      addChangeTrustIfCredit(assetObjA);
+      addChangeTrustIfCredit(assetObjB);
+
+      // Add changeTrust for liquidity pool shares (this is necessary to hold pool shares)
+      const poolAsset = new LiquidityPoolAsset(assetObjA, assetObjB, LiquidityPoolFeeV18);
+      txBuilder.addOperation(
+        Operation.changeTrust({
+          asset: poolAsset,
+        })
+      );
+
+      // Add liquidity pool deposit op
+      txBuilder.addOperation(
+        Operation.liquidityPoolDeposit({
+          liquidityPoolId: poolIdHex,
+          maxAmountA: amountA,
+          maxAmountB: amountB,
+          // minPrice / maxPrice omitted for simplicity; optionally calculate to limit slippage
+        })
+      );
+
+      const tx = txBuilder.setTimeout(60).build();
+      const signer = Keypair.fromSecret(secretKey);
+      tx.sign(signer);
+
+      const res = await server.submitTransaction(tx);
+      await fetchBalance(publicKey);
+      setError(null);
+      return res.hash;
+    } catch (err: any) {
+      console.error('joinLiquidityPool error:', err);
+      setError(err?.message || 'Failed to join liquidity pool');
       throw err;
     } finally {
       setLoading(false);
@@ -267,7 +393,8 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         publicKey,
         secretKey,
         balance,
-        network: 'testnet',
+        network,
+        setNetwork,
         createWallet,
         importWallet,
         disconnect,
@@ -276,6 +403,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         joinLiquidityPool,
         loading,
         error,
+        fundTestnetAccount,
       }}
     >
       {children}
@@ -284,9 +412,9 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 };
 
 export const useWallet = (): WalletContextType => {
-  const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
+  const ctx = useContext(WalletContext);
+  if (ctx === undefined) {
+    throw new Error('useWallet must be used within WalletProvider');
   }
-  return context;
+  return ctx;
 };
