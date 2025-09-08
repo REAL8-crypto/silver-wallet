@@ -1,3 +1,4 @@
+import { Asset } from 'stellar-sdk'; 
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -184,31 +185,35 @@ const WalletDashboard: React.FC = () => {
   };
 
   const handleJoinPool = async () => {
-    if (!poolForm.amountA || !poolForm.amountB) {
-      setError(t('fillAllFields') || 'Please fill in all fields');
-      return;
-    }
+  if (!poolForm.amountA || !poolForm.amountB) {
+    setError(t('fillAllFields') || 'Please fill in all fields');
+    return;
+  }
+  
+  try {
+    // Convert strings to Asset objects
+    const assetA = poolForm.assetA === 'XLM' ? Asset.native() : new Asset(poolForm.assetA, 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD');
+    const assetB = poolForm.assetB === 'XLM' ? Asset.native() : new Asset(poolForm.assetB, 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD');
     
-    try {
-      await joinLiquidityPool(
-        poolForm.assetA,
-        poolForm.assetB,
-        poolForm.amountA,
-        poolForm.amountB
-      );
-      setShowPoolDialog(false);
-      setPoolForm({
-        assetA: 'XLM',
-        assetB: 'REAL8',
-        amountA: '',
-        amountB: ''
-      });
-      setError('');
-    } catch (err) {
-      console.error('Error joining pool:', err);
-      setError(t('error.joiningPool') || 'Error joining liquidity pool');
-    }
-  };
+    await joinLiquidityPool(
+      assetA, // Correctly pass the Asset object
+      assetB, // Correctly pass the Asset object
+      poolForm.amountA,
+      poolForm.amountB
+    );
+    setShowPoolDialog(false);
+    setPoolForm({
+      assetA: 'XLM',
+      assetB: 'REAL8',
+      amountA: '',
+      amountB: ''
+    });
+    setError('');
+  } catch (err) {
+    console.error('Error joining pool:', err);
+    setError(t('error.joiningPool') || 'Error joining liquidity pool');
+  }
+};
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
