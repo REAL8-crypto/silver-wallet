@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import {
   Keypair,
   Server,
@@ -14,11 +14,18 @@ import {
 
 type NetworkType = 'TESTNET' | 'PUBLIC';
 
+interface BalanceItem {
+  asset_code: string;
+  asset_issuer?: string;
+  balance: string;
+}
+
 interface WalletContextProps {
   publicKey: string | null;
   secretKey: string | null;
   network: NetworkType;
   isLoading: boolean;
+  balance: BalanceItem[];
   createNewAccount: () => Promise<void>;
   importAccount: (secret: string) => boolean;
   toggleNetwork: () => void;
@@ -33,6 +40,7 @@ interface WalletContextProps {
     minPrice: string,
     maxPrice: string
   ) => Promise<void>;
+  disconnect: () => void;
 }
 
 const WalletContext = createContext<WalletContextProps>({} as WalletContextProps);
@@ -46,9 +54,33 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [secretKey, setSecretKey] = useState<string | null>(null);
   const [network, setNetwork] = useState<NetworkType>('TESTNET');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [balance, setBalance] = useState<BalanceItem[]>([]);
 
   const server = new Server(network === 'TESTNET' ? HORIZON_TESTNET : HORIZON_PUBLIC);
   const networkPassphrase = network === 'TESTNET' ? Networks.TESTNET : Networks.PUBLIC;
+
+  useEffect(() => {
+    if (publicKey) {
+      refreshBalance();
+    } else {
+      setBalance([]);
+    }
+  }, [publicKey, network]);
+
+  const refreshBalance = async () => {
+    if (!publicKey) return;
+    try {
+      const account = await server.loadAccount(publicKey);
+      const balances = account.balances.map(b => ({
+        asset_code: b.asset_type === 'native' ? 'XLM' : b.asset_code!,
+        asset_issuer: b.asset_issuer,
+        balance: b.balance
+      }));
+      setBalance(balances);
+    } catch (error) {
+      console.error('Failed to load balances:', error);
+    }
+  };
 
   const createNewAccount = async () => {
     const pair = Keypair.random();
@@ -56,6 +88,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setSecretKey(pair.secret());
     if (network === 'TESTNET') {
       await fetch(`https://friendbot.stellar.org?addr=${pair.publicKey()}`);
+      await refreshBalance();
     }
   };
 
@@ -77,6 +110,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const fundWithFriendbot = async () => {
     if (network !== 'TESTNET' || !publicKey) return;
     await fetch(`https://friendbot.stellar.org?addr=${publicKey}`);
+    await refreshBalance();
   };
 
   const getAccount = async (): Promise<AccountResponse> => {
@@ -89,7 +123,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const tx = txBuilder.build();
     const keypair = Keypair.fromSecret(secretKey);
     tx.sign(keypair);
-    return await server.submitTransaction(tx);
+    const result = await server.submitTransaction(tx);
+    await refreshBalance();
+    return result;
   };
 
   const addTrustline = async (assetCode: string, issuer: string) => {
@@ -161,6 +197,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const disconnect = () => {
+    setPublicKey(null);
+    setSecretKey(null);
+    setBalance([]);
+  };
+
   return (
     <WalletContext.Provider
       value={{
@@ -168,13 +210,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         secretKey,
         network,
         isLoading,
+        balance,
         createNewAccount,
         importAccount,
         toggleNetwork,
         fundWithFriendbot,
         addTrustline,
         sendPayment,
-        joinLiquidityPool
+        joinLiquidityPool,
+        disconnect
       }}
     >
       {children}
