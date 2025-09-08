@@ -164,7 +164,8 @@ const WalletDashboard: React.FC = () => {
       return;
     }
     // Check if user has enough XLM for trustline (2 XLM minimum)
-    const currentBalance = parseFloat(balance);
+    const nativeBalanceItem = balances.find(b => b.asset_type === 'native');
+    const currentBalance = nativeBalanceItem ? parseFloat(nativeBalanceItem.balance) : 0;
     if (currentBalance < 2) {
       setError(t('trustlineRequirement') || 'You need to add a trustline for this asset first');
       return;
