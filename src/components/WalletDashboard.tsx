@@ -1,5 +1,5 @@
-import { Asset } from '@stellar/stellar-sdk'; 
 import React, { useState, useEffect } from 'react';
+import StellarSdk from '@stellar/stellar-sdk';
 import {
   Box,
   Card,
@@ -47,6 +47,8 @@ import { useTranslation } from 'react-i18next';
 import QRCode from 'qrcode';
 import real8Logo from '../assets/real8-logo.png';
 import real8Icon from '../assets/real8-icon.png';
+
+const { Asset } = StellarSdk;
 
 // Placeholder components for tabs
 const TabPanel = ({ children, value, index }: any) => (

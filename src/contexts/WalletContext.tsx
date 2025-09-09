@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import * as StellarSdk from "@stellar/stellar-sdk";
+import StellarSdk from "@stellar/stellar-sdk";
 const { Keypair, TransactionBuilder, Networks, Operation } = StellarSdk;
 
 // Type alias for Asset instances
