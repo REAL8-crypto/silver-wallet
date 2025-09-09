@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import StellarSdk, { Keypair, TransactionBuilder, Networks, Operation, type AssetInstance } from "../utils/stellar";
+import * as StellarSdk from "@stellar/stellar-sdk"; // Updated import to use the correct pattern
+import { Keypair, TransactionBuilder, Networks, Operation, Asset } from "@stellar/stellar-sdk";
 
 // Production Horizon and network passphrase
 export const HORIZON_SERVER_URL = "https://horizon.stellar.org";
-export const server = new StellarSdk.Server(HORIZON_SERVER_URL);
+export const server = new StellarSdk.Server(HORIZON_SERVER_URL); // Ensure this works correctly
 export const NETWORK_PASSPHRASE = Networks.PUBLIC;
 
 interface BalanceItem {
@@ -32,8 +33,8 @@ interface WalletContextProps {
     issuer?: string
   ) => Promise<void>;
   joinLiquidityPool: (
-    assetA: AssetInstance,
-    assetB: AssetInstance,
+    assetA: Asset,
+    assetB: Asset,
     amountA: string,
     amountB: string
   ) => Promise<void>;
@@ -110,7 +111,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       })
         .addOperation(
           Operation.changeTrust({
-            asset: new StellarSdk.Asset(assetCode, issuer),
+            asset: new Asset(assetCode, issuer),
           })
         )
         .setTimeout(30)
@@ -137,7 +138,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       const account = await server.loadAccount(publicKey);
       const fee = await server.fetchBaseFee();
-      const asset = assetCode && issuer ? new StellarSdk.Asset(assetCode, issuer) : StellarSdk.Asset.native();
+      const asset = assetCode && issuer ? new Asset(assetCode, issuer) : Asset.native();
       const transaction = new TransactionBuilder(account, {
         fee: fee.toString(),
         networkPassphrase: NETWORK_PASSPHRASE,
@@ -163,8 +164,8 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const joinLiquidityPool = async (
-    assetA: AssetInstance,
-    assetB: AssetInstance,
+    assetA: Asset,
+    assetB: Asset,
     amountA: string,
     amountB: string
   ) => {

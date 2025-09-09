@@ -29,7 +29,7 @@
     "react-dom": "^18.2.0",
     "react-i18next": "^13.5.0",
     "react-scripts": "5.0.1",
-    "typescript": "^5.4.5",
+    "typescript": "^5.1.6",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
