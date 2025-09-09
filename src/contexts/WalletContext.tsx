@@ -1,8 +1,35 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import * as StellarSdkNS from '@stellar/stellar-sdk';
 
-const StellarSdk: any = (StellarSdkNS as any).default || StellarSdkNS;
-const { Server, Asset, Keypair, TransactionBuilder, Networks, Operation } = StellarSdk;
+// Comprehensive interop pattern that handles all bundler scenarios
+let StellarSdk: any;
+
+// Check if we have a default export (ESM)
+if ((StellarSdkNS as any).default && typeof (StellarSdkNS as any).default === 'object') {
+  StellarSdk = (StellarSdkNS as any).default;
+} else if (typeof StellarSdkNS === 'object' && (StellarSdkNS as any).Server) {
+  // Direct namespace with named exports
+  StellarSdk = StellarSdkNS;
+} else {
+  // Fallback to namespace or whatever we have
+  StellarSdk = StellarSdkNS;
+}
+
+// Double-check the extracted objects exist, with fallbacks
+const Server = StellarSdk.Server || (StellarSdkNS as any).Server;
+const Asset = StellarSdk.Asset || (StellarSdkNS as any).Asset;
+const Keypair = StellarSdk.Keypair || (StellarSdkNS as any).Keypair;
+const TransactionBuilder = StellarSdk.TransactionBuilder || (StellarSdkNS as any).TransactionBuilder;
+const Networks = StellarSdk.Networks || (StellarSdkNS as any).Networks;
+const Operation = StellarSdk.Operation || (StellarSdkNS as any).Operation;
+
+// Runtime validation to ensure we have the constructors we need
+if (!Server || typeof Server !== 'function') {
+  throw new Error('Stellar SDK Server constructor not found. Please check your build configuration.');
+}
+if (!Asset || typeof Asset !== 'function') {
+  throw new Error('Stellar SDK Asset constructor not found. Please check your build configuration.');
+}
 
 // Type alias for Asset instances
 type AssetInstance = InstanceType<typeof StellarSdkNS.Asset>;

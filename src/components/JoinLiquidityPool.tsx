@@ -2,8 +2,21 @@ import React, { useState } from 'react';
 import { useWallet } from '../contexts/WalletContext';
 import * as StellarSdkNS from '@stellar/stellar-sdk';
 
-const StellarSdk: any = (StellarSdkNS as any).default || StellarSdkNS;
-const { Asset } = StellarSdk;
+// Comprehensive interop pattern for Asset
+let StellarSdk: any;
+
+if ((StellarSdkNS as any).default && typeof (StellarSdkNS as any).default === 'object') {
+  StellarSdk = (StellarSdkNS as any).default;
+} else {
+  StellarSdk = StellarSdkNS;
+}
+
+const Asset = StellarSdk.Asset || (StellarSdkNS as any).Asset;
+
+// Runtime validation
+if (!Asset || typeof Asset !== 'function') {
+  throw new Error('Stellar SDK Asset constructor not found. Please check your build configuration.');
+}
 
 const JoinLiquidityPool: React.FC = () => {
   const { balances, joinLiquidityPool, loading, error } = useWallet();
