@@ -7,7 +7,7 @@ import * as StellarSdkNS from '@stellar/stellar-sdk';
 const StellarSdk: any = (StellarSdkNS as any).default || StellarSdkNS;
 
 // Export commonly used members for direct access
-export const Server = StellarSdk.Server;
+export const Server = StellarSdk.Horizon.Server;
 export const Asset = StellarSdk.Asset;
 export const Keypair = StellarSdk.Keypair;
 export const TransactionBuilder = StellarSdk.TransactionBuilder;

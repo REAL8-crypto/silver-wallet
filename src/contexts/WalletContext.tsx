@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import StellarSdk, { Keypair, TransactionBuilder, Networks, Operation, type AssetInstance } from "../utils/stellar";
+import StellarSdk, { Server, Keypair, TransactionBuilder, Networks, Operation, type AssetInstance } from "../utils/stellar";
 
 // Production Horizon and network passphrase
 export const HORIZON_SERVER_URL = "https://horizon.stellar.org";
-export const server = new StellarSdk.Server(HORIZON_SERVER_URL);
+export const server = new Server(HORIZON_SERVER_URL);
 export const NETWORK_PASSPHRASE = Networks.PUBLIC;
 
 interface BalanceItem {
