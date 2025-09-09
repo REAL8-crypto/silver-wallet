@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useWallet } from '../contexts/WalletContext';
-import StellarSdk from '@stellar/stellar-sdk';
+import * as StellarSdkNS from '@stellar/stellar-sdk';
 
+const StellarSdk: any = (StellarSdkNS as any).default || StellarSdkNS;
 const { Asset } = StellarSdk;
 
 const JoinLiquidityPool: React.FC = () => {

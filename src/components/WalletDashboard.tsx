@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import StellarSdk from '@stellar/stellar-sdk';
+import * as StellarSdkNS from '@stellar/stellar-sdk';
 import {
   Box,
   Card,
@@ -48,6 +48,7 @@ import QRCode from 'qrcode';
 import real8Logo from '../assets/real8-logo.png';
 import real8Icon from '../assets/real8-icon.png';
 
+const StellarSdk: any = (StellarSdkNS as any).default || StellarSdkNS;
 const { Asset } = StellarSdk;
 
 // Placeholder components for tabs

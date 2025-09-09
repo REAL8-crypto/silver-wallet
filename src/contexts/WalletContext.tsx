@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import StellarSdk from "@stellar/stellar-sdk";
-const { Keypair, TransactionBuilder, Networks, Operation } = StellarSdk;
+import * as StellarSdkNS from '@stellar/stellar-sdk';
+
+const StellarSdk: any = (StellarSdkNS as any).default || StellarSdkNS;
+const { Server, Asset, Keypair, TransactionBuilder, Networks, Operation } = StellarSdk;
 
 // Type alias for Asset instances
-type AssetInstance = InstanceType<typeof StellarSdk.Asset>;
+type AssetInstance = InstanceType<typeof StellarSdkNS.Asset>;
 
 // Production Horizon and network passphrase
 export const HORIZON_SERVER_URL = "https://horizon.stellar.org";
-export const server = new StellarSdk.Server(HORIZON_SERVER_URL);
+export const server = new Server(HORIZON_SERVER_URL);
 export const NETWORK_PASSPHRASE = Networks.PUBLIC;
 
 interface BalanceItem {
@@ -114,7 +116,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       })
         .addOperation(
           Operation.changeTrust({
-            asset: new StellarSdk.Asset(assetCode, issuer),
+            asset: new Asset(assetCode, issuer),
           })
         )
         .setTimeout(30)
@@ -141,7 +143,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       const account = await server.loadAccount(publicKey);
       const fee = await server.fetchBaseFee();
-      const asset = assetCode && issuer ? new StellarSdk.Asset(assetCode, issuer) : StellarSdk.Asset.native();
+      const asset = assetCode && issuer ? new Asset(assetCode, issuer) : Asset.native();
       const transaction = new TransactionBuilder(account, {
         fee: fee.toString(),
         networkPassphrase: NETWORK_PASSPHRASE,
