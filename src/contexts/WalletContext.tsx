@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import * as StellarSdk from "@stellar/stellar-sdk";
-const { Keypair, TransactionBuilder, Networks, Operation, Asset } = StellarSdk;
+const { Keypair, TransactionBuilder, Networks, Operation } = StellarSdk;
+
+// Type alias for Asset instances
+type AssetInstance = InstanceType<typeof StellarSdk.Asset>;
 
 // Production Horizon and network passphrase
 export const HORIZON_SERVER_URL = "https://horizon.stellar.org";
@@ -33,8 +36,8 @@ interface WalletContextProps {
     issuer?: string
   ) => Promise<void>;
   joinLiquidityPool: (
-    assetA: Asset,
-    assetB: Asset,
+    assetA: AssetInstance,
+    assetB: AssetInstance,
     amountA: string,
     amountB: string
   ) => Promise<void>;
@@ -111,7 +114,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       })
         .addOperation(
           Operation.changeTrust({
-            asset: new Asset(assetCode, issuer),
+            asset: new StellarSdk.Asset(assetCode, issuer),
           })
         )
         .setTimeout(30)
@@ -138,7 +141,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       const account = await server.loadAccount(publicKey);
       const fee = await server.fetchBaseFee();
-      const asset = assetCode && issuer ? new Asset(assetCode, issuer) : Asset.native();
+      const asset = assetCode && issuer ? new StellarSdk.Asset(assetCode, issuer) : StellarSdk.Asset.native();
       const transaction = new TransactionBuilder(account, {
         fee: fee.toString(),
         networkPassphrase: NETWORK_PASSPHRASE,
@@ -164,8 +167,8 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const joinLiquidityPool = async (
-    assetA: Asset,
-    assetB: Asset,
+    assetA: AssetInstance,
+    assetB: AssetInstance,
     amountA: string,
     amountB: string
   ) => {
