@@ -1,9 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import StellarSdk from "@stellar/stellar-sdk";
-const { Keypair, TransactionBuilder, Networks, Operation } = StellarSdk;
-
-// Type alias for Asset instances
-type AssetInstance = InstanceType<typeof StellarSdk.Asset>;
+import StellarSdk, { Keypair, TransactionBuilder, Networks, Operation, type AssetInstance } from "../utils/stellar";
 
 // Production Horizon and network passphrase
 export const HORIZON_SERVER_URL = "https://horizon.stellar.org";

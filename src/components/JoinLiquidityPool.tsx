@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useWallet } from '../contexts/WalletContext';
-import StellarSdk from '@stellar/stellar-sdk';
-
-const { Asset } = StellarSdk;
+import { Asset } from '../utils/stellar';
 
 const JoinLiquidityPool: React.FC = () => {
   const { balances, joinLiquidityPool, loading, error } = useWallet();
