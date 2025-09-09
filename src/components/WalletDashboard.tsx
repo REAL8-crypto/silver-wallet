@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import * as StellarSdkNS from '@stellar/stellar-sdk';
 import {
   Box,
   Card,
@@ -48,21 +47,21 @@ import QRCode from 'qrcode';
 import real8Logo from '../assets/real8-logo.png';
 import real8Icon from '../assets/real8-icon.png';
 
-// Comprehensive interop pattern for Asset
-let StellarSdk: any;
+// Stellar SDK Asset will be loaded dynamically
+let Asset: any = null;
 
-if ((StellarSdkNS as any).default && typeof (StellarSdkNS as any).default === 'object') {
-  StellarSdk = (StellarSdkNS as any).default;
-} else {
-  StellarSdk = StellarSdkNS;
-}
-
-const Asset = StellarSdk.Asset || (StellarSdkNS as any).Asset;
-
-// Runtime validation
-if (!Asset || typeof Asset !== 'function') {
-  throw new Error('Stellar SDK Asset constructor not found. Please check your build configuration.');
-}
+// Initialize Asset dynamically
+const initializeAsset = async () => {
+  if (Asset) return; // Already initialized
+  
+  try {
+    const StellarSdkModule = await import('@stellar/stellar-sdk');
+    const StellarSDK = StellarSdkModule.default || StellarSdkModule;
+    Asset = StellarSDK.Asset || StellarSdkModule.Asset;
+  } catch (error) {
+    console.error('Failed to load Stellar SDK Asset:', error);
+  }
+};
 
 // Placeholder components for tabs
 const TabPanel = ({ children, value, index }: any) => (
@@ -96,6 +95,7 @@ const WalletDashboard: React.FC = () => {
   const [showAddAssetDialog, setShowAddAssetDialog] = useState(false);
   const [showPoolDialog, setShowPoolDialog] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isAssetInitialized, setIsAssetInitialized] = useState<boolean>(false);
   const [sendForm, setSendForm] = useState({
     destination: '',
     amount: '',
@@ -113,6 +113,15 @@ const WalletDashboard: React.FC = () => {
     amountB: ''
   });
   const [error, setError] = useState('');
+
+  // Initialize Asset on mount
+  useEffect(() => {
+    const init = async () => {
+      await initializeAsset();
+      setIsAssetInitialized(true);
+    };
+    init();
+  }, []);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -203,6 +212,11 @@ const WalletDashboard: React.FC = () => {
   const handleJoinPool = async () => {
   if (!poolForm.amountA || !poolForm.amountB) {
     setError(t('fillAllFields') || 'Please fill in all fields');
+    return;
+  }
+  
+  if (!Asset || !isAssetInitialized) {
+    setError('Stellar SDK not initialized. Please try again.');
     return;
   }
   

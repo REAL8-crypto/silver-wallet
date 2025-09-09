@@ -1,22 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWallet } from '../contexts/WalletContext';
-import * as StellarSdkNS from '@stellar/stellar-sdk';
 
-// Comprehensive interop pattern for Asset
-let StellarSdk: any;
+// Stellar SDK Asset will be loaded dynamically
+let Asset: any = null;
 
-if ((StellarSdkNS as any).default && typeof (StellarSdkNS as any).default === 'object') {
-  StellarSdk = (StellarSdkNS as any).default;
-} else {
-  StellarSdk = StellarSdkNS;
-}
-
-const Asset = StellarSdk.Asset || (StellarSdkNS as any).Asset;
-
-// Runtime validation
-if (!Asset || typeof Asset !== 'function') {
-  throw new Error('Stellar SDK Asset constructor not found. Please check your build configuration.');
-}
+// Initialize Asset dynamically
+const initializeAsset = async () => {
+  if (Asset) return; // Already initialized
+  
+  try {
+    const StellarSdkModule = await import('@stellar/stellar-sdk');
+    const StellarSDK = StellarSdkModule.default || StellarSdkModule;
+    Asset = StellarSDK.Asset || StellarSdkModule.Asset;
+  } catch (error) {
+    console.error('Failed to load Stellar SDK Asset:', error);
+  }
+};
 
 const JoinLiquidityPool: React.FC = () => {
   const { balances, joinLiquidityPool, loading, error } = useWallet();
@@ -24,9 +23,23 @@ const JoinLiquidityPool: React.FC = () => {
   const [assetB, setAssetB] = useState<string>('');
   const [amountA, setAmountA] = useState<string>('');
   const [amountB, setAmountB] = useState<string>('');
+  const [isAssetInitialized, setIsAssetInitialized] = useState<boolean>(false);
+
+  useEffect(() => {
+    const init = async () => {
+      await initializeAsset();
+      setIsAssetInitialized(true);
+    };
+    init();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!Asset || !isAssetInitialized) {
+      alert('Stellar SDK not initialized. Please try again.');
+      return;
+    }
 
     // Validation
     const xlmBalance = balances.find((b) => b.asset_type === 'native');

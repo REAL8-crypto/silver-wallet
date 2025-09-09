@@ -1,43 +1,52 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import * as StellarSdkNS from '@stellar/stellar-sdk';
 
-// Comprehensive interop pattern that handles all bundler scenarios
-let StellarSdk: any;
-
-// Check if we have a default export (ESM)
-if ((StellarSdkNS as any).default && typeof (StellarSdkNS as any).default === 'object') {
-  StellarSdk = (StellarSdkNS as any).default;
-} else if (typeof StellarSdkNS === 'object' && (StellarSdkNS as any).Server) {
-  // Direct namespace with named exports
-  StellarSdk = StellarSdkNS;
-} else {
-  // Fallback to namespace or whatever we have
-  StellarSdk = StellarSdkNS;
-}
-
-// Double-check the extracted objects exist, with fallbacks
-const Server = StellarSdk.Server || (StellarSdkNS as any).Server;
-const Asset = StellarSdk.Asset || (StellarSdkNS as any).Asset;
-const Keypair = StellarSdk.Keypair || (StellarSdkNS as any).Keypair;
-const TransactionBuilder = StellarSdk.TransactionBuilder || (StellarSdkNS as any).TransactionBuilder;
-const Networks = StellarSdk.Networks || (StellarSdkNS as any).Networks;
-const Operation = StellarSdk.Operation || (StellarSdkNS as any).Operation;
-
-// Runtime validation to ensure we have the constructors we need
-if (!Server || typeof Server !== 'function') {
-  throw new Error('Stellar SDK Server constructor not found. Please check your build configuration.');
-}
-if (!Asset || typeof Asset !== 'function') {
-  throw new Error('Stellar SDK Asset constructor not found. Please check your build configuration.');
-}
-
-// Type alias for Asset instances
-type AssetInstance = InstanceType<typeof StellarSdkNS.Asset>;
+// Type alias for Asset instances using import type
+type AssetInstance = InstanceType<typeof import('@stellar/stellar-sdk').Asset>;
 
 // Production Horizon and network passphrase
 export const HORIZON_SERVER_URL = "https://horizon.stellar.org";
-export const server = new Server(HORIZON_SERVER_URL);
-export const NETWORK_PASSPHRASE = Networks.PUBLIC;
+export const NETWORK_PASSPHRASE = "Public Global Stellar Network ; September 2015";
+
+// Stellar SDK will be loaded dynamically
+let StellarSDK: any = null;
+let Server: any = null;
+let Asset: any = null;
+let Keypair: any = null;
+let TransactionBuilder: any = null;
+let Networks: any = null;
+let Operation: any = null;
+let server: any = null;
+
+// Initialize Stellar SDK dynamically
+const initializeStellarSDK = async () => {
+  if (StellarSDK) return; // Already initialized
+  
+  try {
+    // Use dynamic import to load Stellar SDK
+    const StellarSdkModule = await import('@stellar/stellar-sdk');
+    
+    // Handle different export patterns
+    StellarSDK = StellarSdkModule.default || StellarSdkModule;
+    
+    // Extract constructors with fallbacks
+    Server = StellarSDK.Server || StellarSdkModule.Server;
+    Asset = StellarSDK.Asset || StellarSdkModule.Asset;
+    Keypair = StellarSDK.Keypair || StellarSdkModule.Keypair;
+    TransactionBuilder = StellarSDK.TransactionBuilder || StellarSdkModule.TransactionBuilder;
+    Networks = StellarSDK.Networks || StellarSdkModule.Networks;
+    Operation = StellarSDK.Operation || StellarSdkModule.Operation;
+    
+    // Initialize server instance
+    if (Server) {
+      server = new Server(HORIZON_SERVER_URL);
+    }
+    
+    console.log('Stellar SDK loaded successfully');
+  } catch (error) {
+    console.error('Failed to load Stellar SDK:', error);
+    throw new Error('Failed to initialize Stellar SDK');
+  }
+};
 
 interface BalanceItem {
   asset_type: string; // "native" or "credit_alphanum4"/"credit_alphanum12"
@@ -80,19 +89,39 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [balances, setBalances] = useState<BalanceItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
   // Computed XLM balance
   const balance = balances.find(b => b.asset_type === "native")?.balance || "0";
 
+  // Initialize Stellar SDK on mount
   useEffect(() => {
-    if (publicKey) {
+    const init = async () => {
+      try {
+        await initializeStellarSDK();
+        setIsInitialized(true);
+      } catch (err) {
+        console.error('Failed to initialize Stellar SDK:', err);
+        setError('Failed to initialize Stellar SDK');
+      }
+    };
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (publicKey && isInitialized) {
       fetchBalance(publicKey);
     } else {
       setBalances([]);
     }
-  }, [publicKey]);
+  }, [publicKey, isInitialized]);
 
   const fetchBalance = async (accountId: string) => {
+    if (!server) {
+      setError('Stellar SDK not initialized');
+      return;
+    }
+    
     try {
       setLoading(true);
       const account = await server.loadAccount(accountId);
@@ -112,6 +141,11 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const connectWallet = async (secret: string) => {
+    if (!Keypair) {
+      setError('Stellar SDK not initialized');
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);
@@ -132,7 +166,11 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const addTrustline = async (assetCode: string, issuer: string) => {
-    if (!publicKey || !secretKey) return;
+    if (!publicKey || !secretKey || !server || !TransactionBuilder || !Operation || !Asset || !Keypair) {
+      setError('Wallet not connected or Stellar SDK not initialized');
+      return;
+    }
+    
     setLoading(true);
     try {
       const account = await server.loadAccount(publicKey);
@@ -165,7 +203,11 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     assetCode?: string,
     issuer?: string
   ) => {
-    if (!publicKey || !secretKey) return;
+    if (!publicKey || !secretKey || !server || !TransactionBuilder || !Operation || !Asset || !Keypair) {
+      setError('Wallet not connected or Stellar SDK not initialized');
+      return;
+    }
+    
     setLoading(true);
     try {
       const account = await server.loadAccount(publicKey);
@@ -221,7 +263,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         secretKey,
         balance,
         balances,
-        loading,
+        loading: loading || !isInitialized,
         error,
         connectWallet,
         createWallet: () => {}, // You can implement wallet generation here
