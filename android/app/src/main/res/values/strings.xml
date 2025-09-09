@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">REAL8 Wallet</string>
+    <string name="title_activity_main">REAL8 Wallet</string>
+    <string name="package_name">com.real8.wallet</string>
+    <string name="custom_url_scheme">com.real8.wallet</string>
+</resources>
