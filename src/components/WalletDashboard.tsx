@@ -1,4 +1,3 @@
-import { Asset } from '@stellar/stellar-sdk'; 
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -45,8 +44,14 @@ import {
 import { useWallet } from '../contexts/WalletContext';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'qrcode';
+import StellarSdk from '@stellar/stellar-sdk';
 import real8Logo from '../assets/real8-logo.png';
 import real8Icon from '../assets/real8-icon.png';
+
+const { Asset } = StellarSdk;
+
+// Type alias for Asset instances
+type AssetInstance = InstanceType<typeof StellarSdk.Asset>;
 
 // Placeholder components for tabs
 const TabPanel = ({ children, value, index }: any) => (
@@ -192,8 +197,8 @@ const WalletDashboard: React.FC = () => {
   
   try {
     // Convert strings to Asset objects
-    const assetA = poolForm.assetA === 'XLM' ? Asset.native() : new Asset(poolForm.assetA, 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD');
-    const assetB = poolForm.assetB === 'XLM' ? Asset.native() : new Asset(poolForm.assetB, 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD');
+    const assetA: AssetInstance = poolForm.assetA === 'XLM' ? Asset.native() : new Asset(poolForm.assetA, 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD');
+    const assetB: AssetInstance = poolForm.assetB === 'XLM' ? Asset.native() : new Asset(poolForm.assetB, 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD');
     
     await joinLiquidityPool(
       assetA, // Correctly pass the Asset object

@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useWallet } from '../contexts/WalletContext';
-import { Asset } from '@stellar/stellar-sdk';
+import StellarSdk from '@stellar/stellar-sdk';
+const { Asset } = StellarSdk;
+
+// Type alias for Asset instances
+type AssetInstance = InstanceType<typeof StellarSdk.Asset>;
 
 const JoinLiquidityPool: React.FC = () => {
   const { balances, joinLiquidityPool, loading, error } = useWallet();
@@ -24,7 +28,7 @@ const JoinLiquidityPool: React.FC = () => {
     }
 
     // Convert to Asset objects
-    const getAsset = (code: string) => {
+    const getAsset = (code: string): AssetInstance => {
       if (code === 'XLM') return Asset.native();
       const found = balances.find((b) => b.asset_code === code);
       if (!found || !found.asset_issuer) throw new Error('Asset not found');
