@@ -1,16 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import {
-  Server,
-  Keypair,
-  TransactionBuilder,
-  Networks,
-  Operation,
-  Asset,
-} from "@stellar/stellar-sdk";
+import * as StellarSdk from "@stellar/stellar-sdk";
+const { Keypair, TransactionBuilder, Networks, Operation, Asset } = StellarSdk;
 
 // Production Horizon and network passphrase
 export const HORIZON_SERVER_URL = "https://horizon.stellar.org";
-export const server = new Server(HORIZON_SERVER_URL);
+export const server = new StellarSdk.Server(HORIZON_SERVER_URL);
 export const NETWORK_PASSPHRASE = Networks.PUBLIC;
 
 interface BalanceItem {
@@ -125,7 +119,8 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       transaction.sign(Keypair.fromSecret(secretKey));
       await server.submitTransaction(transaction);
       await fetchBalance(publicKey);
-    } catch {
+    } catch (err) {
+      console.error("Error adding trustline:", err);
       setError("Failed to add trustline");
     } finally {
       setLoading(false);
@@ -160,7 +155,8 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       transaction.sign(Keypair.fromSecret(secretKey));
       await server.submitTransaction(transaction);
       await fetchBalance(publicKey);
-    } catch {
+    } catch (err) {
+      console.error("Error sending payment:", err);
       setError("Failed to send payment");
     } finally {
       setLoading(false);
@@ -176,7 +172,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (!publicKey || !secretKey) return;
     setLoading(true);
     try {
-      // Note: Liquidity pool functionality needs to be updated for the current SDK version
+      // Note: Liquidity pool functionality temporarily disabled pending SDK compatibility checks
       setError("Liquidity pool functionality temporarily unavailable");
       console.log("Liquidity pool deposit:", { assetA, assetB, amountA, amountB });
     } catch {
