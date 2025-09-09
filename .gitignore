@@ -27,3 +27,6 @@ yarn-error.log*
 
 # Backup files
 *.bak
+
+# Temporary test files
+stellar-test.js
