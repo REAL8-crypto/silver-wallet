@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import StellarSdk from '@stellar/stellar-sdk';
+import StellarSdk from '../utils/stellar';
 import {
   Box,
   Card,
