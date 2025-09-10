@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Typography, Alert, Paper } from '@mui/material';
 import Real8FeaturedCard from '../Real8FeaturedCard';
 import Real8StatsGrid from './Real8StatsGrid';
-import Real8LinksPanel from './Real8LinksPanel';
 import { useWallet } from '../../contexts/WalletContext';
 import { REAL8 } from '../../constants/real8Asset';
 
@@ -20,7 +19,7 @@ const Real8Tab: React.FC<Real8TabProps> = ({
   const { unfunded } = useWallet();
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <Box sx={{ pt: 2, maxWidth: 920, mx: 'auto' }}>
       <Real8FeaturedCard
         onSend={onSend}
         onReceive={onReceive}
@@ -35,69 +34,55 @@ const Real8Tab: React.FC<Real8TabProps> = ({
         </Alert>
       )}
 
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          gap: 2
-        }}
-      >
-        {/* Left Column */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Paper
-            sx={{
-              mb: 2,
-              p: 2,
-              borderRadius: 2,
-              border: theme => `1px solid ${theme.palette.divider}`
-            }}
+      <Box sx={{ mb: 3 }}>
+        <Paper
+          sx={{
+            mb: 2,
+            p: 2,
+            borderRadius: 2,
+            border: theme => `1px solid ${theme.palette.divider}`
+          }}
+        >
+          <Typography
+            variant="subtitle2"
+            sx={{ mb: 1, fontWeight: 600 }}
           >
-            <Typography
-              variant="subtitle2"
-              sx={{ mb: 1, fontWeight: 600 }}
-            >
-              About {REAL8.BRAND_NAME}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              This section will later include market data, ecosystem metrics, and
-              additional utilities for the {REAL8.BRAND_NAME} asset. All numeric
-              values shown are placeholders for development.
-            </Typography>
-          </Paper>
+            About {REAL8.BRAND_NAME}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            This section will later include market data, ecosystem metrics, and
+            additional utilities for the {REAL8.BRAND_NAME} asset. All numeric
+            values shown are placeholders for development.
+          </Typography>
+        </Paper>
 
-            <Paper
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              border: theme => `1px solid ${theme.palette.divider}`
-            }}
+        <Paper
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            border: theme => `1px solid ${theme.palette.divider}`
+          }}
+        >
+          <Typography
+            variant="subtitle2"
+            sx={{ mb: 1, fontWeight: 600 }}
           >
-            <Typography
-              variant="subtitle2"
-              sx={{ mb: 1, fontWeight: 600 }}
-            >
-              Roadmap (Preview)
-            </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              component="div"
-            >
-              <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-                <li>Live price & liquidity aggregation</li>
-                <li>Mini performance chart (7d)</li>
-                <li>Circulating vs. locked supply panels</li>
-                <li>Pool participation & yield metrics</li>
-                <li>Guided on‑ramp / acquisition flow</li>
-              </ul>
-            </Typography>
-          </Paper>
-        </Box>
-
-        {/* Right Column */}
-        <Box sx={{ width: { xs: '100%', md: 340 }, flexShrink: 0 }}>
-          <Real8LinksPanel />
-        </Box>
+            Roadmap (Preview)
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            component="div"
+          >
+            <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+              <li>Live price & liquidity aggregation</li>
+              <li>Mini performance chart (7d)</li>
+              <li>Circulating vs. locked supply panels</li>
+              <li>Pool participation & yield metrics</li>
+              <li>Guided on‑ramp / acquisition flow</li>
+            </ul>
+          </Typography>
+        </Paper>
       </Box>
     </Box>
   );

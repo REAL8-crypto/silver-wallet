@@ -76,6 +76,11 @@
   "insufficientBalance": "Insufficient Balance",
   "trustlineRequirement": "You need at least 2 XLM to create a trustline (1 XLM for account minimum + 0.5 XLM for trustline reserve).",
   "currentBalance": "Current balance",
+  "buyReal8": "Buy REAL8",
+  "switchToMainnet": "Switch to Mainnet",
+  "switchToTestnet": "Switch to Testnet",
+  "testnet": "TESTNET",
+  "mainnet": "MAINNET",
   "error": {
     "fetchingBalance": "Error fetching balance",
     "creatingWallet": "Error creating wallet",

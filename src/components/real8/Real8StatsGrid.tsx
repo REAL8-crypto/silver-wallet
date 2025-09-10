@@ -1,16 +1,14 @@
 import React from 'react';
-import { Paper, Typography, Skeleton, Tooltip, Box } from '@mui/material';
-import { useReal8Price } from '../../hooks/useReal8Price';
-import { useReal8Supply } from '../../hooks/useReal8Supply';
+import { Paper, Typography, Skeleton, Box } from '@mui/material';
+import { useReal8AssetData } from '../../hooks/useReal8AssetData';
 
 interface StatBoxProps {
   label: string;
   value?: string | number | null;
   loading?: boolean;
-  tooltip?: string;
 }
 
-const StatBox: React.FC<StatBoxProps> = ({ label, value, loading, tooltip }) => {
+const StatBox: React.FC<StatBoxProps> = ({ label, value, loading }) => {
   const content = loading ? (
     <Skeleton width="60%" />
   ) : (
@@ -19,7 +17,7 @@ const StatBox: React.FC<StatBoxProps> = ({ label, value, loading, tooltip }) => 
     </Typography>
   );
 
-  const inner = (
+  return (
     <Paper
       elevation={2}
       sx={{
@@ -42,13 +40,10 @@ const StatBox: React.FC<StatBoxProps> = ({ label, value, loading, tooltip }) => 
       {content}
     </Paper>
   );
-
-  return tooltip ? <Tooltip title={tooltip}>{inner}</Tooltip> : inner;
 };
 
 const Real8StatsGrid: React.FC = () => {
-  const { loading: priceLoading, priceUsd } = useReal8Price();
-  const { loading: supplyLoading, data: supply } = useReal8Supply();
+  const { loading, data } = useReal8AssetData();
 
   return (
     <Box
@@ -61,31 +56,27 @@ const Real8StatsGrid: React.FC = () => {
     >
       <StatBox
         label="Price (USD)"
-        loading={priceLoading}
-        value={priceUsd ? `$${priceUsd.toFixed(2)}` : null}
-        tooltip="Indicative placeholder price"
+        loading={loading}
+        value={data.priceUsd ? `$${data.priceUsd.toFixed(2)}` : null}
       />
       <StatBox
         label="Total Supply"
-        loading={supplyLoading}
-        value={supply.totalSupply?.toLocaleString()}
-        tooltip="Static placeholder supply"
+        loading={loading}
+        value={data.totalSupply?.toLocaleString()}
       />
       <StatBox
         label="Circulating"
-        loading={supplyLoading}
-        value={supply.circulating?.toLocaleString()}
-        tooltip="Static placeholder circulating"
+        loading={loading}
+        value={data.circulating?.toLocaleString()}
       />
       <StatBox
         label="Updated"
-        loading={supplyLoading}
+        loading={loading}
         value={
-          supply.updatedAt
-            ? new Date(supply.updatedAt).toLocaleTimeString()
+          data.updatedAt
+            ? new Date(data.updatedAt).toLocaleTimeString()
             : null
         }
-        tooltip="Last mock refresh time"
       />
     </Box>
   );
