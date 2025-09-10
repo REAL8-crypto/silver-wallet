@@ -1,8 +1,7 @@
-/* Updated with REAL8 dedicated tab */
 import React, { useState } from 'react';
 import {
   Box, Typography, Button, IconButton, Menu, MenuItem, Divider,
-  Paper, Alert, List, ListItem, ListItemText, Tab
+  Paper, Alert, List, ListItem, ListItemText, Tab, Chip
 } from '@mui/material';
 import {
   Logout as LogoutIcon,
@@ -15,8 +14,7 @@ import {
   AccountBalanceWallet,
   CompareArrows,
   Check as CheckIcon,
-  ContentCopy as ContentCopyIcon,
-  Star as StarIcon
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 import { useTranslation } from 'react-i18next';
@@ -42,8 +40,11 @@ const WalletDashboard: React.FC = () => {
     balances,
     disconnect,
     unfunded,
-    isTestnet
+    networkMode,
+    setNetworkMode
   } = useWallet();
+
+  const isTestnet = networkMode === 'testnet';
 
   const [tabValue, setTabValue] = useState('real8'); // start on REAL8 for branding
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -117,6 +118,11 @@ const WalletDashboard: React.FC = () => {
 
   const handleAddTrustline = () => setOpenAddAsset(true);
 
+  const handleNetworkToggle = () => {
+    setNetworkMode(networkMode === 'testnet' ? 'public' : 'testnet');
+    closeMenu();
+  };
+
   // Filter out REAL8 for generic Assets list (it lives in its own tab now)
   const nonReal8Balances = balances.filter(
     b => b.asset_code !== REAL8.CODE
@@ -141,13 +147,12 @@ const WalletDashboard: React.FC = () => {
             style={{ height: 44, objectFit: 'contain' }}
           />
           {isTestnet && (
-            <Alert
-              severity="info"
-              icon={false}
-              sx={{ py: 0.5, px: 1, fontSize: 12 }}
-            >
-              TESTNET
-            </Alert>
+            <Chip
+              label="TESTNET"
+              color="warning"
+              size="small"
+              sx={{ fontSize: 11, height: 20 }}
+            />
           )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -171,11 +176,25 @@ const WalletDashboard: React.FC = () => {
               component="a"
               href={
                 i18n.language === 'en'
+                  ? REAL8.BUY_EN
+                  : REAL8.BUY_ES
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={closeMenu}
+            >
+              {t('buyReal8')}
+            </MenuItem>
+            <MenuItem
+              component="a"
+              href={
+                i18n.language === 'en'
                   ? 'https://real8.org/en/buy-real8/'
                   : 'https://real8.org/es/compra-venta-de-real8/'
               }
               target="_blank"
               rel="noopener noreferrer"
+              onClick={closeMenu}
             >
               {t('help')}
             </MenuItem>
@@ -188,8 +207,13 @@ const WalletDashboard: React.FC = () => {
               }
               target="_blank"
               rel="noopener noreferrer"
+              onClick={closeMenu}
             >
               {t('contact')}
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={handleNetworkToggle}>
+              {isTestnet ? t('switchToMainnet') : t('switchToTestnet')}
             </MenuItem>
             <Divider />
             <MenuItem onClick={disconnect}>
@@ -254,39 +278,46 @@ const WalletDashboard: React.FC = () => {
               mb: 1,
               '& .MuiTab-root': {
                 minHeight: 70,
+                minWidth: 44,
                 fontSize: { xs: 11, sm: 13 }
               }
             }}
           >
             <Tab
               value="real8"
-              icon={<StarIcon sx={{ fontSize: 30 }} />}
+              icon={
+                <img
+                  src={real8Icon}
+                  alt="REAL8"
+                  style={{ width: 22, height: 22, objectFit: 'contain' }}
+                />
+              }
               iconPosition="top"
-              label="REAL8"
+              aria-label="REAL8"
             />
             <Tab
               value="assets"
               icon={<AccountBalanceWallet sx={{ fontSize: 30 }} />}
               iconPosition="top"
-              label={t('assets') || 'Assets'}
+              aria-label={t('assets') || 'Assets'}
             />
             <Tab
               value="transactions"
               icon={<CompareArrows sx={{ fontSize: 30 }} />}
               iconPosition="top"
-              label={t('transactions') || 'Transactions'}
+              aria-label={t('transactions') || 'Transactions'}
             />
             <Tab
               value="pools"
               icon={<PoolIcon sx={{ fontSize: 30 }} />}
               iconPosition="top"
-              label={t('pools') || 'Pools'}
+              aria-label={t('pools') || 'Pools'}
             />
             <Tab
               value="settings"
               icon={<SettingsIcon sx={{ fontSize: 30 }} />}
               iconPosition="top"
-              label={t('settings') || 'Settings'}
+              aria-label={t('settings') || 'Settings'}
             />
           </TabList>
 

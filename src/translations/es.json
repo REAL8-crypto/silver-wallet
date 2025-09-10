@@ -76,6 +76,9 @@
   "insufficientBalance": "Saldo Insuficiente",
   "trustlineRequirement": "Necesitas al menos 2 XLM para crear una línea de confianza (1 XLM para el mínimo de cuenta + 0.5 XLM para la reserva de línea de confianza).",
   "currentBalance": "Saldo actual",
+  "buyReal8": "Comprar REAL8",
+  "switchToMainnet": "Cambiar a Mainnet",
+  "switchToTestnet": "Cambiar a Testnet",
   "error": {
     "fetchingBalance": "Error al obtener el saldo",
     "creatingWallet": "Error al crear la billetera",
