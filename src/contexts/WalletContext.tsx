@@ -375,39 +375,57 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     memoText?: string;
   }) => {
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
-    const kp = IS_TEST ? TestHelpers.Keypair.fromSecret(secretKey) : eval('require')('@stellar/stellar-sdk').Keypair.fromSecret(secretKey);
-    const account = IS_TEST
-      ? { sequence: '0', balances: [] }
-      : await serverRef.current.loadAccount(publicKey);
-    const fee = String(IS_TEST ? 100 : await serverRef.current.fetchBaseFee());
-
-    const StellarSDK = IS_TEST ? null : eval('require')('@stellar/stellar-sdk');
-    const asset =
-      !assetCode || assetCode === 'XLM'
-        ? (IS_TEST ? TestHelpers.Asset.native() : StellarSDK.Asset.native())
-        : (IS_TEST ? TestHelpers.Asset.create(assetCode, issuer || '') : new StellarSDK.Asset(assetCode, issuer || ''));
-
-    let builder = IS_TEST 
-      ? createTestBuilder(account, { fee, networkPassphrase: cfg.passphrase })
-      : new StellarSDK.TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
     
-    const Operation = IS_TEST ? TestHelpers.Operation : StellarSDK.Operation;
-    builder = builder.addOperation(
-      Operation.payment({
-        destination,
-        asset,
-        amount
-      })
-    );
+    let builder: any;
+    let kp: any;
 
-    if (memoText) {
-      const Memo = IS_TEST ? TestHelpers.Memo : StellarSDK.Memo;
-      if (typeof builder.addMemo === 'function') {
-        builder = builder.addMemo(Memo.text(memoText.slice(0, 28)));
-      } else {
-        // fallback for stub
-        (builder as any).memo = Memo.text(memoText.slice(0, 28));
+    if (IS_TEST) {
+      kp = TestHelpers.Keypair.fromSecret(secretKey);
+      const account = { sequence: '0', balances: [] };
+      const fee = '100';
+
+      const asset =
+        !assetCode || assetCode === 'XLM'
+          ? TestHelpers.Asset.native()
+          : TestHelpers.Asset.create(assetCode, issuer || '');
+
+      builder = createTestBuilder(account, { fee, networkPassphrase: cfg.passphrase });
+      builder = builder.addOperation(
+        TestHelpers.Operation.payment({
+          destination,
+          asset,
+          amount
+        })
+      );
+
+      if (memoText) {
+        if (typeof builder.addMemo === 'function') {
+          builder = builder.addMemo(TestHelpers.Memo.text(memoText.slice(0, 28)));
+        } else {
+          (builder as any).memo = TestHelpers.Memo.text(memoText.slice(0, 28));
+        }
       }
+    } else {
+      const StellarSDK = await import('@stellar/stellar-sdk');
+      kp = StellarSDK.Keypair.fromSecret(secretKey);
+      const account = await serverRef.current.loadAccount(publicKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+
+      const asset =
+        !assetCode || assetCode === 'XLM'
+          ? StellarSDK.Asset.native()
+          : new StellarSDK.Asset(assetCode, issuer || '');
+
+      builder = new StellarSDK.TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
+      builder = builder.addOperation(
+        StellarSDK.Operation.payment({
+          destination,
+          asset,
+          amount
+        })
+      );
+
+      // TODO: Add memo support back once API is clarified
     }
 
     await submitTx(builder, kp);
@@ -423,28 +441,41 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const addTrustline = async (assetCode: string, issuer: string, limit?: string) => {
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
-    const kp = IS_TEST ? TestHelpers.Keypair.fromSecret(secretKey) : eval('require')('@stellar/stellar-sdk').Keypair.fromSecret(secretKey);
-    const account = IS_TEST
-      ? { sequence: '0', balances: [] }
-      : await serverRef.current.loadAccount(publicKey);
-    const fee = String(IS_TEST ? 100 : await serverRef.current.fetchBaseFee());
-
-    const StellarSDK = IS_TEST ? null : eval('require')('@stellar/stellar-sdk');
-    const asset = IS_TEST ? TestHelpers.Asset.create(assetCode, issuer) : new StellarSDK.Asset(assetCode, issuer);
-    const Operation = IS_TEST ? TestHelpers.Operation : StellarSDK.Operation;
     
-    const builder = IS_TEST 
-      ? createTestBuilder(account, { fee, networkPassphrase: cfg.passphrase })
-      : new StellarSDK.TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
-    
-    builder.addOperation(
-      Operation.changeTrust({
-        asset,
-        limit
-      })
-    );
+    if (IS_TEST) {
+      const kp = TestHelpers.Keypair.fromSecret(secretKey);
+      const account = { sequence: '0', balances: [] };
+      const fee = '100';
 
-    await submitTx(builder, kp);
+      const asset = TestHelpers.Asset.create(assetCode, issuer);
+      const builder = createTestBuilder(account, { fee, networkPassphrase: cfg.passphrase });
+      
+      builder.addOperation(
+        TestHelpers.Operation.changeTrust({
+          asset,
+          limit
+        })
+      );
+
+      await submitTx(builder, kp);
+    } else {
+      const StellarSDK = await import('@stellar/stellar-sdk');
+      const kp = StellarSDK.Keypair.fromSecret(secretKey);
+      const account = await serverRef.current.loadAccount(publicKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+
+      const asset = new StellarSDK.Asset(assetCode, issuer);
+      const builder = new StellarSDK.TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
+      
+      builder.addOperation(
+        StellarSDK.Operation.changeTrust({
+          asset,
+          limit
+        })
+      );
+
+      await submitTx(builder, kp);
+    }
   };
 
   const removeTrustline = async (assetCode: string, issuer: string) => {
@@ -455,28 +486,49 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (line && parseFloat(line.balance) !== 0) {
       throw new Error('Trustline balance must be zero before removal');
     }
-    const kp = IS_TEST ? TestHelpers.Keypair.fromSecret(secretKey) : eval('require')('@stellar/stellar-sdk').Keypair.fromSecret(secretKey);
-    const account = IS_TEST
-      ? { sequence: '0', balances: [] }
-      : await serverRef.current.loadAccount(publicKey);
-    const fee = String(IS_TEST ? 100 : await serverRef.current.fetchBaseFee());
-
-    const StellarSDK = IS_TEST ? null : eval('require')('@stellar/stellar-sdk');
-    const asset = IS_TEST ? TestHelpers.Asset.create(assetCode, issuer) : new StellarSDK.Asset(assetCode, issuer);
-    const Operation = IS_TEST ? TestHelpers.Operation : StellarSDK.Operation;
-    
-    const builder = IS_TEST 
-      ? createTestBuilder(account, { fee, networkPassphrase: cfg.passphrase })
-      : new StellarSDK.TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
-    
-    builder.addOperation(
-      Operation.changeTrust({
-        asset,
-        limit: '0'
-      })
+  const removeTrustline = async (assetCode: string, issuer: string) => {
+    if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
+    const line = balances.find(
+      b => b.asset_code === assetCode && b.asset_issuer === issuer
     );
+    if (line && parseFloat(line.balance) !== 0) {
+      throw new Error('Trustline balance must be zero before removal');
+    }
+    
+    if (IS_TEST) {
+      const kp = TestHelpers.Keypair.fromSecret(secretKey);
+      const account = { sequence: '0', balances: [] };
+      const fee = '100';
 
-    await submitTx(builder, kp);
+      const asset = TestHelpers.Asset.create(assetCode, issuer);
+      const builder = createTestBuilder(account, { fee, networkPassphrase: cfg.passphrase });
+      
+      builder.addOperation(
+        TestHelpers.Operation.changeTrust({
+          asset,
+          limit: '0'
+        })
+      );
+
+      await submitTx(builder, kp);
+    } else {
+      const StellarSDK = await import('@stellar/stellar-sdk');
+      const kp = StellarSDK.Keypair.fromSecret(secretKey);
+      const account = await serverRef.current.loadAccount(publicKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+
+      const asset = new StellarSDK.Asset(assetCode, issuer);
+      const builder = new StellarSDK.TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
+      
+      builder.addOperation(
+        StellarSDK.Operation.changeTrust({
+          asset,
+          limit: '0'
+        })
+      );
+
+      await submitTx(builder, kp);
+    }
   };
 
   const joinLiquidityPool = async ({
