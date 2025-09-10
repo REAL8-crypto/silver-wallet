@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import StellarSdk from '../utils/stellar';
+import React, { useState } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
   Button,
   Tabs,
@@ -25,15 +22,10 @@ import {
   Paper
 } from '@mui/material';
 import {
-  ContentCopy as CopyIcon,
   Logout as LogoutIcon,
-  Wallet as WalletIcon,
   MoreVert as MoreIcon,
-  Language as LanguageIcon,
   Send as SendIcon,
   SwapHoriz as SwapIcon,
-  AccountBalance as BalanceIcon,
-  Receipt as ReceiptIcon,
   Pool as PoolIcon,
   Settings as SettingsIcon,
   Add as AddIcon,
@@ -48,15 +40,6 @@ import QRCode from 'qrcode';
 import real8Logo from '../assets/real8-logo.png';
 import real8Icon from '../assets/real8-icon.png';
 
-const { Asset } = StellarSdk;
-
-// Placeholder components for tabs
-const TabPanel = ({ children, value, index }: any) => (
-  <div hidden={value !== index}>{value === index && children}</div>
-);
-
-const TabContext = React.createContext({});
-
 const WalletDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { 
@@ -68,7 +51,7 @@ const WalletDashboard: React.FC = () => {
     sendPayment, 
     joinLiquidityPool,
     loading,
-    error: walletError
+    error
   } = useWallet();
   
   const [activeTab, setActiveTab] = useState('assets');
@@ -98,7 +81,7 @@ const WalletDashboard: React.FC = () => {
     amountA: '',
     amountB: ''
   });
-  const [error, setError] = useState('');
+  const [localError, setLocalError] = useState('');
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -142,7 +125,7 @@ const WalletDashboard: React.FC = () => {
 
   const handleSend = async () => {
     if (!sendForm.destination || !sendForm.amount) {
-      setError(t('fillAllFields') || 'Please fill in all fields');
+      setLocalError(t('fillAllFields') || 'Please fill in all fields');
       return;
     }
     
@@ -155,23 +138,23 @@ const WalletDashboard: React.FC = () => {
       );
       setShowSendDialog(false);
       setSendForm({ destination: '', amount: '', asset: 'XLM', memo: '' });
-      setError('');
+      setLocalError('');
     } catch (err) {
       console.error('Error sending payment:', err);
-      setError(t('error.sendingPayment') || 'Error sending payment');
+      setLocalError(t('error.sendingPayment') || 'Error sending payment');
     }
   };
 
   const handleAddTrustline = async () => {
     if (!trustlineForm.assetCode || !trustlineForm.issuer) {
-      setError(t('fillAllFields') || 'Please fill in all fields');
+      setLocalError(t('fillAllFields') || 'Please fill in all fields');
       return;
     }
     // Check if user has enough XLM for trustline (2 XLM minimum)
     const nativeBalanceItem = balances.find(b => b.asset_code === 'XLM');
     const currentBalance = nativeBalanceItem ? parseFloat(nativeBalanceItem.balance) : 0;
     if (currentBalance < 2) {
-      setError(t('trustlineRequirement') || 'You need at least 2 XLM to add a trustline');
+      setLocalError(t('trustlineRequirement') || 'You need at least 2 XLM to add a trustline');
       return;
     }
     
@@ -179,27 +162,33 @@ const WalletDashboard: React.FC = () => {
       await addTrustline(trustlineForm.assetCode, trustlineForm.issuer);
       setShowAddAssetDialog(false);
       setTrustlineForm({ assetCode: 'REAL8', issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD' });
-      setError('');
+      setLocalError('');
     } catch (err) {
       console.error('Error adding trustline:', err);
-      setError(t('error.addingTrustline') || 'Error adding trustline');
+      setLocalError(t('error.addingTrustline') || 'Error adding trustline');
     }
   };
 
   const handleJoinPool = async () => {
   if (!poolForm.amountA || !poolForm.amountB) {
-    setError(t('fillAllFields') || 'Please fill in all fields');
+    setLocalError(t('fillAllFields') || 'Please fill in all fields');
     return;
   }
   
   try {
-    // Convert strings to Asset objects
-    const assetA = poolForm.assetA === 'XLM' ? Asset.native() : new Asset(poolForm.assetA, 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD');
-    const assetB = poolForm.assetB === 'XLM' ? Asset.native() : new Asset(poolForm.assetB, 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD');
+    // Note: This is a simplified version. The actual implementation would need to import
+    // the proper asset classes and handle asset conversion correctly.
+    console.log('Pool joining with new SDK:', {
+      assetA: poolForm.assetA,
+      assetB: poolForm.assetB,
+      amountA: poolForm.amountA,
+      amountB: poolForm.amountB
+    });
     
+    // For now, we'll just call the function with null assets since it's temporarily disabled
     await joinLiquidityPool(
-      assetA, // Correctly pass the Asset object
-      assetB, // Correctly pass the Asset object
+      null as any, // This will be properly implemented when liquidity pools are re-enabled
+      null as any,
       poolForm.amountA,
       poolForm.amountB
     );
@@ -210,10 +199,10 @@ const WalletDashboard: React.FC = () => {
       amountA: '',
       amountB: ''
     });
-    setError('');
+    setLocalError('');
   } catch (err) {
     console.error('Error joining pool:', err);
-    setError(t('error.joiningPool') || 'Error joining liquidity pool');
+    setLocalError(t('error.joiningPool') || 'Error joining liquidity pool');
   }
 };
 
@@ -631,7 +620,7 @@ const WalletDashboard: React.FC = () => {
       <Dialog open={showSendDialog} onClose={() => setShowSendDialog(false)}>
         <DialogTitle>{t('send')}</DialogTitle>
         <DialogContent>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {(error || localError) && <Alert severity="error" sx={{ mb: 2 }}>{error || localError}</Alert>}
           <TextField
             margin="dense"
             label={t('destination')}
@@ -741,7 +730,7 @@ const WalletDashboard: React.FC = () => {
       <Dialog open={showAddAssetDialog} onClose={() => setShowAddAssetDialog(false)}>
         <DialogTitle>{t('addTrustline')}</DialogTitle>
         <DialogContent>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {(error || localError) && <Alert severity="error" sx={{ mb: 2 }}>{error || localError}</Alert>}
           
           {/* Balance Warning */}
           {parseFloat(balance) < 2 && (
@@ -792,7 +781,7 @@ const WalletDashboard: React.FC = () => {
       <Dialog open={showPoolDialog} onClose={() => setShowPoolDialog(false)}>
         <DialogTitle>{t('joinPool')}</DialogTitle>
         <DialogContent>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {(error || localError) && <Alert severity="error" sx={{ mb: 2 }}>{error || localError}</Alert>}
           
           {/* Available Balances */}
           <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>

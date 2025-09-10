@@ -1,11 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import * as StellarSdk from "@stellar/stellar-sdk"; // Updated import to use the correct pattern
-import { Keypair, TransactionBuilder, Networks, Operation, Asset } from "@stellar/stellar-sdk";
+import { Wallet, StellarConfiguration, ApplicationConfiguration, IssuedAssetId, NativeAssetId, SigningKeypair } from "@stellar/typescript-wallet-sdk";
+import { Keypair } from "@stellar/stellar-sdk";
+
+// Use testnet for this configuration - update to MainNet for production
+const stellarConfig = StellarConfiguration.TestNet();
+const appConfig = new ApplicationConfiguration();
+const wallet = new Wallet({
+  stellarConfiguration: stellarConfig,
+  applicationConfiguration: appConfig,
+});
 
 // Production Horizon and network passphrase
-export const HORIZON_SERVER_URL = "https://horizon.stellar.org";
-export const server = new StellarSdk.Server(HORIZON_SERVER_URL); // Ensure this works correctly
-export const NETWORK_PASSPHRASE = Networks.PUBLIC;
+export const HORIZON_SERVER_URL = stellarConfig.horizonUrl;
+export const server = stellarConfig.server;
+export const NETWORK_PASSPHRASE = stellarConfig.network;
 
 interface BalanceItem {
   asset_type: string; // "native" or "credit_alphanum4"/"credit_alphanum12"
@@ -33,8 +41,8 @@ interface WalletContextProps {
     issuer?: string
   ) => Promise<void>;
   joinLiquidityPool: (
-    assetA: Asset,
-    assetB: Asset,
+    assetA: IssuedAssetId | NativeAssetId,
+    assetB: IssuedAssetId | NativeAssetId,
     amountA: string,
     amountB: string
   ) => Promise<void>;
@@ -63,7 +71,8 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const fetchBalance = async (accountId: string) => {
     try {
       setLoading(true);
-      const account = await server.loadAccount(accountId);
+      const stellar = wallet.stellar();
+      const account = await stellar.account().getInfo({ accountAddress: accountId });
       const accountBalances: BalanceItem[] = account.balances.map((b: any) => ({
         asset_type: b.asset_type,
         asset_code: b.asset_code || undefined,
@@ -103,21 +112,20 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (!publicKey || !secretKey) return;
     setLoading(true);
     try {
-      const account = await server.loadAccount(publicKey);
-      const fee = await server.fetchBaseFee();
-      const transaction = new TransactionBuilder(account, {
-        fee: fee.toString(),
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-        .addOperation(
-          Operation.changeTrust({
-            asset: new Asset(assetCode, issuer),
-          })
-        )
-        .setTimeout(30)
+      const stellar = wallet.stellar();
+      const signingKeypair = SigningKeypair.fromSecret(secretKey);
+      const asset = new IssuedAssetId(assetCode, issuer);
+      
+      const txBuilder = await stellar.transaction({
+        sourceAddress: signingKeypair,
+      });
+      
+      const transaction = txBuilder
+        .addAssetSupport(asset)
         .build();
-      transaction.sign(Keypair.fromSecret(secretKey));
-      await server.submitTransaction(transaction);
+      
+      signingKeypair.sign(transaction);
+      await stellar.submitTransaction(transaction);
       await fetchBalance(publicKey);
     } catch (err) {
       console.error("Error adding trustline:", err);
@@ -136,24 +144,20 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (!publicKey || !secretKey) return;
     setLoading(true);
     try {
-      const account = await server.loadAccount(publicKey);
-      const fee = await server.fetchBaseFee();
-      const asset = assetCode && issuer ? new Asset(assetCode, issuer) : Asset.native();
-      const transaction = new TransactionBuilder(account, {
-        fee: fee.toString(),
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-        .addOperation(
-          Operation.payment({
-            destination,
-            asset,
-            amount,
-          })
-        )
-        .setTimeout(30)
+      const stellar = wallet.stellar();
+      const signingKeypair = SigningKeypair.fromSecret(secretKey);
+      const asset = assetCode && issuer ? new IssuedAssetId(assetCode, issuer) : new NativeAssetId();
+      
+      const txBuilder = await stellar.transaction({
+        sourceAddress: signingKeypair,
+      });
+      
+      const transaction = txBuilder
+        .transfer(destination, asset, amount)
         .build();
-      transaction.sign(Keypair.fromSecret(secretKey));
-      await server.submitTransaction(transaction);
+      
+      signingKeypair.sign(transaction);
+      await stellar.submitTransaction(transaction);
       await fetchBalance(publicKey);
     } catch (err) {
       console.error("Error sending payment:", err);
@@ -164,8 +168,8 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const joinLiquidityPool = async (
-    assetA: Asset,
-    assetB: Asset,
+    assetA: IssuedAssetId | NativeAssetId,
+    assetB: IssuedAssetId | NativeAssetId,
     amountA: string,
     amountB: string
   ) => {

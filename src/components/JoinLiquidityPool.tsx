@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useWallet } from '../contexts/WalletContext';
-import { Asset } from '../utils/stellar';
+import { IssuedAssetId, NativeAssetId } from '@stellar/typescript-wallet-sdk';
 
 const JoinLiquidityPool: React.FC = () => {
   const { balances, joinLiquidityPool, loading, error } = useWallet();
@@ -25,10 +25,10 @@ const JoinLiquidityPool: React.FC = () => {
 
     // Convert to Asset objects
     const getAsset = (code: string) => {
-      if (code === 'XLM') return Asset.native();
+      if (code === 'XLM') return new NativeAssetId();
       const found = balances.find((b) => b.asset_code === code);
       if (!found || !found.asset_issuer) throw new Error('Asset not found');
-      return new Asset(found.asset_code!, found.asset_issuer!);
+      return new IssuedAssetId(found.asset_code!, found.asset_issuer!);
     };
 
     try {
