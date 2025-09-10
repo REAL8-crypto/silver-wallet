@@ -1,3 +1,4 @@
+// Simplified Server instantiation: removed dynamic export resolution to fix production constructor error.
 import React, {
   createContext,
   useContext,
@@ -26,127 +27,82 @@ interface BalanceLine {
   is_clawback_enabled?: boolean;
 }
 
-// ---------- Lightweight Test Stub (only used under NODE_ENV=test) ----------
-function buildTestStub() {
-  class Server {
-    url: string;
-    constructor(url: string) {
-      this.url = url;
-    }
+// ---------- Test stub helpers ----------
+function createTestKeypair() {
+  return {
+    secret: () => 'S'.padEnd(56, 'X'),
+    publicKey: () => 'G'.padEnd(56, 'Y')
+  };
+}
+
+function createTestServer(url: string) {
+  return {
+    url,
     async loadAccount(_pk: string) {
-      // Simulate unfunded; mirror Horizon 404 shape where consumed
       const err: any = new Error('Not Found');
       err.response = { status: 404 };
       throw err;
-    }
+    },
     async fetchBaseFee() {
       return 100;
-    }
+    },
     async submitTransaction(_tx: any) {
       return { hash: 'TEST_HASH' };
     }
-  }
+  };
+}
 
-  class Keypair {
-    static random() {
-      return new Keypair();
-    }
-    static fromSecret(_s: string) {
-      return new Keypair();
-    }
-    secret() {
-      return 'S'.padEnd(56, 'X');
-    }
-    publicKey() {
-      return 'G'.padEnd(56, 'Y');
-    }
-  }
+function createTestAsset(code: string, issuer: string) {
+  return { code, issuer };
+}
 
-  class Asset {
-    static native() {
-      return new Asset('XLM', '');
-    }
-    code: string;
-    issuer: string;
-    constructor(code: string, issuer: string) {
-      this.code = code;
-      this.issuer = issuer;
-    }
-  }
-
-  class TransactionBuilder {
-    account: any;
-    opts: any;
-    ops: any[];
-    memo: any;
-    constructor(account: any, opts: any) {
-      this.account = account;
-      this.opts = opts;
-      this.ops = [];
-      this.memo = undefined;
-    }
+function createTestBuilder(account: any, opts: any) {
+  return {
+    account,
+    opts,
+    ops: [] as any[],
+    memo: undefined as any,
     addOperation(op: any) {
       this.ops.push(op);
       return this;
-    }
+    },
     addMemo(m: any) {
       this.memo = m;
       return this;
-    }
+    },
     setTimeout() {
       return this;
-    }
+    },
     build() {
       return {
         sign: () => {},
         toXDR: () => 'XDR'
       };
     }
-  }
+  };
+}
 
-  const Operation = {
+const TestHelpers = {
+  Keypair: {
+    random: createTestKeypair,
+    fromSecret: (_s: string) => createTestKeypair()
+  },
+  Asset: {
+    native: () => createTestAsset('XLM', ''),
+    create: createTestAsset
+  },
+  Operation: {
     payment: (o: any) => ({ type: 'payment', ...o }),
     changeTrust: (o: any) => ({ type: 'changeTrust', ...o })
-  };
-
-  const Networks = {
+  },
+  Networks: {
     TESTNET: 'Test SDF Network ; September 2015',
     PUBLIC: 'Public Global Stellar Network ; September 2015'
-  };
-
-  const Memo = {
+  },
+  Memo: {
     text: (v: string) => ({ type: 'text', value: v })
-  };
-
-  return {
-    Server,
-    Keypair,
-    Asset,
-    TransactionBuilder,
-    Operation,
-    Networks,
-    Memo
-  };
-}
-
-// Either real SDK (runtime) or stub (tests)
-let Stellar: any;
-if (IS_TEST) {
-  Stellar = buildTestStub();
-} else {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  Stellar = require('@stellar/stellar-sdk');
-}
-
-const {
-  Server: HorizonServer,
-  Keypair,
-  Asset,
-  TransactionBuilder,
-  Operation,
-  Networks,
-  Memo
-} = Stellar;
+  }
+};
 
 interface WalletContextValue {
   publicKey: string | null;
@@ -201,6 +157,7 @@ const TESTNET_HORIZON = 'https://horizon-testnet.stellar.org';
 const PUBLIC_HORIZON = 'https://horizon.stellar.org';
 
 function getConfig(mode: NetworkMode) {
+  const Networks = IS_TEST ? TestHelpers.Networks : require('@stellar/stellar-sdk').Networks;
   return mode === 'public'
     ? { url: PUBLIC_HORIZON, passphrase: Networks.PUBLIC, isTestnet: false }
     : { url: TESTNET_HORIZON, passphrase: Networks.TESTNET, isTestnet: true };
@@ -214,7 +171,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
   const cfg = getConfig(networkMode);
 
-  const [server, setServer] = useState<any>(() => new HorizonServer(cfg.url));
+  // Use serverRef pattern for single Server instance per networkMode
+  const serverRef = useRef<any>(null);
 
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [secretKey, setSecretKey] = useState<string | null>(null);
@@ -230,7 +188,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const pollingRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setServer(new HorizonServer(cfg.url));
+    // Instantiate a single Server instance per networkMode - hardcode import to avoid webpack issues
+    if (IS_TEST) {
+      serverRef.current = createTestServer(cfg.url);
+    } else {
+      serverRef.current = new (require('@stellar/stellar-sdk').Server)(cfg.url);
+    }
     localStorage.setItem('NETWORK_MODE', networkMode);
     if (publicKey && !IS_TEST) {
       void refresh();
@@ -250,7 +213,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setError(null);
       try {
         setLoading(true);
-        const account = await server.loadAccount(pk);
+        const account = await serverRef.current.loadAccount(pk);
         setUnfunded(false);
 
         const native = (account.balances as BalanceLine[]).find(
@@ -272,7 +235,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setLoading(false);
       }
     },
-    [server]
+    [] // Remove server dependency since we use serverRef.current
   );
 
   const refresh = useCallback(async () => {
@@ -287,7 +250,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       localStorage.getItem('stellar_secret_key');
     if (stored) {
       try {
-        const kp = Keypair.fromSecret(stored);
+        const kp = IS_TEST ? TestHelpers.Keypair.fromSecret(stored) : require('@stellar/stellar-sdk').Keypair.fromSecret(stored);
         setSecretKey(stored);
         setPublicKey(kp.publicKey());
         void loadAccount(kp.publicKey());
@@ -318,7 +281,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [publicKey, refresh]);
 
   const generateWallet = () => {
-    const kp = Keypair.random();
+    const kp = IS_TEST ? TestHelpers.Keypair.random() : require('@stellar/stellar-sdk').Keypair.random();
     setPublicKey(kp.publicKey());
     setSecretKey(kp.secret());
     localStorage.setItem('WALLET_SECRET', kp.secret());
@@ -329,7 +292,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const importSecret = (secret: string) => {
     try {
-      const kp = Keypair.fromSecret(secret.trim());
+      const kp = IS_TEST ? TestHelpers.Keypair.fromSecret(secret.trim()) : require('@stellar/stellar-sdk').Keypair.fromSecret(secret.trim());
       setPublicKey(kp.publicKey());
       setSecretKey(kp.secret());
       localStorage.setItem('WALLET_SECRET', kp.secret());
@@ -352,7 +315,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   async function submitTx(builder: any, signer: any) {
     const tx = builder.setTimeout(120).build();
     tx.sign?.(signer); // real SDK; stub has no-op
-    const res = await server.submitTransaction(tx);
+    const res = await serverRef.current.submitTransaction(tx);
     await refresh();
     return res;
   }
@@ -371,21 +334,24 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     memoText?: string;
   }) => {
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
-    const kp = Keypair.fromSecret(secretKey);
+    const kp = IS_TEST ? TestHelpers.Keypair.fromSecret(secretKey) : require('@stellar/stellar-sdk').Keypair.fromSecret(secretKey);
     const account = IS_TEST
       ? { sequence: '0', balances: [] }
-      : await server.loadAccount(publicKey);
-    const fee = String(IS_TEST ? 100 : await server.fetchBaseFee());
+      : await serverRef.current.loadAccount(publicKey);
+    const fee = String(IS_TEST ? 100 : await serverRef.current.fetchBaseFee());
 
+    const StellarSDK = IS_TEST ? null : require('@stellar/stellar-sdk');
     const asset =
       !assetCode || assetCode === 'XLM'
-        ? Asset.native()
-        : new Asset(assetCode, issuer || '');
+        ? (IS_TEST ? TestHelpers.Asset.native() : StellarSDK.Asset.native())
+        : (IS_TEST ? TestHelpers.Asset.create(assetCode, issuer || '') : new StellarSDK.Asset(assetCode, issuer || ''));
 
-    let builder = new TransactionBuilder(account, {
-      fee,
-      networkPassphrase: cfg.passphrase
-    }).addOperation(
+    let builder = IS_TEST 
+      ? createTestBuilder(account, { fee, networkPassphrase: cfg.passphrase })
+      : new StellarSDK.TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
+    
+    const Operation = IS_TEST ? TestHelpers.Operation : StellarSDK.Operation;
+    builder = builder.addOperation(
       Operation.payment({
         destination,
         asset,
@@ -394,6 +360,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (memoText) {
+      const Memo = IS_TEST ? TestHelpers.Memo : StellarSDK.Memo;
       if (typeof builder.addMemo === 'function') {
         builder = builder.addMemo(Memo.text(memoText.slice(0, 28)));
       } else {
@@ -415,18 +382,23 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const addTrustline = async (assetCode: string, issuer: string, limit?: string) => {
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
-    const kp = Keypair.fromSecret(secretKey);
+    const kp = IS_TEST ? TestHelpers.Keypair.fromSecret(secretKey) : require('@stellar/stellar-sdk').Keypair.fromSecret(secretKey);
     const account = IS_TEST
       ? { sequence: '0', balances: [] }
-      : await server.loadAccount(publicKey);
-    const fee = String(IS_TEST ? 100 : await server.fetchBaseFee());
+      : await serverRef.current.loadAccount(publicKey);
+    const fee = String(IS_TEST ? 100 : await serverRef.current.fetchBaseFee());
 
-    const builder = new TransactionBuilder(account, {
-      fee,
-      networkPassphrase: cfg.passphrase
-    }).addOperation(
+    const StellarSDK = IS_TEST ? null : require('@stellar/stellar-sdk');
+    const asset = IS_TEST ? TestHelpers.Asset.create(assetCode, issuer) : new StellarSDK.Asset(assetCode, issuer);
+    const Operation = IS_TEST ? TestHelpers.Operation : StellarSDK.Operation;
+    
+    const builder = IS_TEST 
+      ? createTestBuilder(account, { fee, networkPassphrase: cfg.passphrase })
+      : new StellarSDK.TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
+    
+    builder.addOperation(
       Operation.changeTrust({
-        asset: new Asset(assetCode, issuer),
+        asset,
         limit
       })
     );
@@ -442,18 +414,23 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (line && parseFloat(line.balance) !== 0) {
       throw new Error('Trustline balance must be zero before removal');
     }
-    const kp = Keypair.fromSecret(secretKey);
+    const kp = IS_TEST ? TestHelpers.Keypair.fromSecret(secretKey) : require('@stellar/stellar-sdk').Keypair.fromSecret(secretKey);
     const account = IS_TEST
       ? { sequence: '0', balances: [] }
-      : await server.loadAccount(publicKey);
-    const fee = String(IS_TEST ? 100 : await server.fetchBaseFee());
+      : await serverRef.current.loadAccount(publicKey);
+    const fee = String(IS_TEST ? 100 : await serverRef.current.fetchBaseFee());
 
-    const builder = new TransactionBuilder(account, {
-      fee,
-      networkPassphrase: cfg.passphrase
-    }).addOperation(
+    const StellarSDK = IS_TEST ? null : require('@stellar/stellar-sdk');
+    const asset = IS_TEST ? TestHelpers.Asset.create(assetCode, issuer) : new StellarSDK.Asset(assetCode, issuer);
+    const Operation = IS_TEST ? TestHelpers.Operation : StellarSDK.Operation;
+    
+    const builder = IS_TEST 
+      ? createTestBuilder(account, { fee, networkPassphrase: cfg.passphrase })
+      : new StellarSDK.TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
+    
+    builder.addOperation(
       Operation.changeTrust({
-        asset: new Asset(assetCode, issuer),
+        asset,
         limit: '0'
       })
     );
