@@ -4,26 +4,29 @@ import { useWallet } from '../contexts/WalletContext';
 
 interface FundingBannerProps {
   publicKey: string | null;
-  /**
-   * Optional: caller can still pass unfunded; if not provided we just show whenever used.
-   * In current usage you already gate with {unfunded && <FundingBanner .../>}
-   */
   unfunded?: boolean;
+  // Support both legacy + new naming (either pair can be used)
   onCopy?: () => void;
   copied?: boolean;
+  onCopyAddress?: () => void;
+  copiedAddress?: boolean;
 }
 
 const FundingBanner: React.FC<FundingBannerProps> = ({
   publicKey,
   unfunded,
   onCopy,
-  copied
+  copied,
+  onCopyAddress,
+  copiedAddress
 }) => {
   const { isTestnet } = useWallet();
-
   if (!publicKey) return null;
-  // If unfunded prop is explicitly provided and false, hide.
   if (typeof unfunded === 'boolean' && !unfunded) return null;
+
+  // Normalize handlers (prefer new naming if provided)
+  const handleCopy = onCopyAddress || onCopy;
+  const isCopied = copiedAddress ?? copied ?? false;
 
   const friendbotUrl = `https://friendbot.stellar.org/?addr=${publicKey}`;
 
@@ -57,19 +60,22 @@ const FundingBanner: React.FC<FundingBannerProps> = ({
             </Typography>
           )}
 
-          {onCopy && (
+          {handleCopy && (
             <Button
               size="small"
               variant="outlined"
-              onClick={onCopy}
-              disabled={copied}
+              onClick={handleCopy}
+              disabled={isCopied}
             >
-              {copied ? 'Copied!' : 'Copy Address'}
+              {isCopied ? 'Copied!' : 'Copy Address'}
             </Button>
           )}
         </Stack>
 
-        <Typography variant="caption" sx={{ wordBreak: 'break-all', opacity: 0.8 }}>
+        <Typography
+            variant="caption"
+            sx={{ wordBreak: 'break-all', opacity: 0.8 }}
+        >
           {publicKey}
         </Typography>
       </Stack>
