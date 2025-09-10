@@ -1,8 +1,17 @@
-/* Updated with REAL8 dedicated tab */
 import React, { useState } from 'react';
 import {
-  Box, Typography, Button, IconButton, Menu, MenuItem, Divider,
-  Paper, Alert, List, ListItem, ListItemText, Tab
+  Box,
+  Typography,
+  IconButton,
+  Menu,
+  MenuItem,
+  Divider,
+  Paper,
+  Alert,
+  Tab,
+  Chip,
+  Stack,
+  Tooltip
 } from '@mui/material';
 import {
   Logout as LogoutIcon,
@@ -13,10 +22,7 @@ import {
   Settings as SettingsIcon,
   Pool as PoolIcon,
   AccountBalanceWallet,
-  CompareArrows,
-  Check as CheckIcon,
-  ContentCopy as ContentCopyIcon,
-  Star as StarIcon
+  CompareArrows
 } from '@mui/icons-material';
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 import { useTranslation } from 'react-i18next';
@@ -42,13 +48,14 @@ const WalletDashboard: React.FC = () => {
     balances,
     disconnect,
     unfunded,
-    isTestnet
+    isTestnet,
+    networkMode,
+    setNetworkMode
   } = useWallet();
 
-  const [tabValue, setTabValue] = useState('real8'); // start on REAL8 for branding
+  const [tabValue, setTabValue] = useState('real8'); // focus branding first
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  // Dialog states
   const [openSend, setOpenSend] = useState(false);
   const [openReceive, setOpenReceive] = useState(false);
   const [openAddAsset, setOpenAddAsset] = useState(false);
@@ -56,19 +63,15 @@ const WalletDashboard: React.FC = () => {
   const [openPkWarning, setOpenPkWarning] = useState(false);
   const [showPrivateKey, setShowPrivateKey] = useState(false);
 
-  // Copy flags
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState(false);
 
-  // QR code
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [qrGenerating, setQrGenerating] = useState(false);
 
   const handleTabChange = (_: React.SyntheticEvent, v: string) => setTabValue(v);
-  const changeLanguage = (lng: string) => i18n.changeLanguage(lng);
 
-  const openMenu = (e: React.MouseEvent<HTMLElement>) =>
-    setAnchorEl(e.currentTarget);
+  const openMenu = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
   const closeMenu = () => setAnchorEl(null);
 
   const handleCopyAddress = () => {
@@ -89,496 +92,230 @@ const WalletDashboard: React.FC = () => {
     setTimeout(() => setCopiedSecret(false), 1800);
   };
 
-  const handleShowSecret = () => setOpenPkWarning(true);
-
-  const confirmShowSecret = () => {
-    setShowPrivateKey(true);
-    setOpenPkWarning(false);
-    setTimeout(() => setShowPrivateKey(false), 30_000);
-  };
-
-  const openReceiveDialog = async () => {
-    if (publicKey) {
-      setQrGenerating(true);
-      try {
-        const url = await QRCode.toDataURL(publicKey, {
-          width: 200,
-          margin: 2
-        });
-        setQrCodeUrl(url);
-      } catch {
-        setQrCodeUrl('');
-      } finally {
-        setQrGenerating(false);
-      }
+  const generateQr = async () => {
+    if (!publicKey) return;
+    setQrGenerating(true);
+    try {
+      const url = await QRCode.toDataURL(publicKey);
+      setQrCodeUrl(url);
+    } finally {
+      setQrGenerating(false);
     }
-    setOpenReceive(true);
   };
 
-  const handleAddTrustline = () => setOpenAddAsset(true);
+  const isSpanish = i18n.language.startsWith('es');
+  const buyLabel = isSpanish ? REAL8.BUY_ES : REAL8.BUY_EN;
+  const networkToggleLabel = isSpanish
+    ? networkMode === 'testnet'
+      ? 'Cambiar a Mainnet'
+      : 'Cambiar a Testnet'
+    : networkMode === 'testnet'
+      ? 'Switch to Mainnet'
+      : 'Switch to Testnet';
 
-  // Filter out REAL8 for generic Assets list (it lives in its own tab now)
-  const nonReal8Balances = balances.filter(
-    b => b.asset_code !== REAL8.CODE
-  );
+  const toggleNetwork = () =>
+    setNetworkMode(networkMode === 'testnet' ? 'public' : 'testnet');
 
   return (
-    <Box sx={{ maxWidth: 1000, mx: 'auto', p: { xs: 1, sm: 2 } }}>
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3,
-          flexWrap: 'nowrap'
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <Box sx={{ p: { xs: 1.5, sm: 3 }, maxWidth: 1300, mx: 'auto' }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <img
             src={real8Logo}
             alt="REAL8"
-            style={{ height: 44, objectFit: 'contain' }}
+            height={34}
+            style={{ objectFit: 'contain', display: 'block' }}
           />
-          {isTestnet && (
-            <Alert
-              severity="info"
-              icon={false}
-              sx={{ py: 0.5, px: 1, fontSize: 12 }}
-            >
-              TESTNET
-            </Alert>
+          {networkMode === 'testnet' && (
+            <Chip
+              label="TESTNET"
+              color="warning"
+              size="small"
+              sx={{ ml: 1, fontWeight: 600 }}
+            />
           )}
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton
-            onClick={() => changeLanguage('es')}
-            sx={{ fontSize: '1.5rem', opacity: i18n.language === 'es' ? 1 : 0.5 }}
-          >
-            🇪🇸
-          </IconButton>
-          <IconButton
-            onClick={() => changeLanguage('en')}
-            sx={{ fontSize: '1.5rem', opacity: i18n.language === 'en' ? 1 : 0.5 }}
-          >
-            🇺🇸
-          </IconButton>
-          <IconButton onClick={openMenu}>
-            <MoreIcon />
-          </IconButton>
-          <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={closeMenu}>
-            <MenuItem
-              component="a"
-              href={
-                i18n.language === 'en'
-                  ? 'https://real8.org/en/buy-real8/'
-                  : 'https://real8.org/es/compra-venta-de-real8/'
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('help')}
-            </MenuItem>
-            <MenuItem
-              component="a"
-              href={
-                i18n.language === 'en'
-                  ? 'https://real8.org/en/contact/'
-                  : 'https://real8.org/es/contactar/'
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('contact')}
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={disconnect}>
-              <LogoutIcon fontSize="small" style={{ marginRight: 8 }} />
-              {t('disconnect')}
-            </MenuItem>
-          </Menu>
-        </Box>
-      </Box>
-
-      {/* Global Balance & Actions */}
-      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, textAlign: 'center' }}>
-        <Typography variant="subtitle2" color="textSecondary">
-          {t('totalBalance') || 'Total Balance'}
-        </Typography>
-        <Typography
-          variant="h3"
-          sx={{
-            fontSize: { xs: '2.3rem', sm: '3.2rem' },
-            wordBreak: 'break-word'
-          }}
+        <Box sx={{ flexGrow: 1 }} />
+        <IconButton onClick={openMenu} aria-label="Menu">
+          <MoreIcon />
+        </IconButton>
+        <Menu
+          anchorEl={anchorEl}
+          open={!!anchorEl}
+          onClose={closeMenu}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         >
-          {nativeBalance} XLM
-        </Typography>
-
-        <FundingBanner publicKey={publicKey} unfunded={unfunded} />
-
-        <Box
-          sx={{
-            mt: 2,
-            display: 'flex',
-            gap: { xs: 1, sm: 2 },
-            flexDirection: { xs: 'column', sm: 'row' },
-            justifyContent: 'center'
-          }}
-        >
-          <Button
-            variant="contained"
-            startIcon={<SendIcon />}
-            onClick={() => setOpenSend(true)}
-            disabled={unfunded}
+          <MenuItem
+            onClick={() => {
+              window.open(isSpanish ? REAL8.BUY_ES : REAL8.BUY_EN, '_blank', 'noopener');
+              closeMenu();
+            }}
           >
-            {t('send') || 'Send'}
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<SwapIcon />}
-            onClick={openReceiveDialog}
+            {buyLabel}
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              toggleNetwork();
+              closeMenu();
+            }}
           >
-            {t('receive') || 'Receive'}
-          </Button>
-        </Box>
-      </Paper>
+            {networkToggleLabel}
+          </MenuItem>
+          <Divider />
+          <MenuItem
+            onClick={() => {
+              disconnect();
+              closeMenu();
+            }}
+          >
+            <LogoutIcon fontSize="small" style={{ marginRight: 8 }} />
+            {isSpanish ? 'Cerrar Sesión' : 'Logout'}
+          </MenuItem>
+        </Menu>
+      </Stack>
 
-      <Paper sx={{ p: 2, mb: 3 }}>
+      {unfunded && (
+        <FundingBanner
+          onCopy={handleCopyAddress}
+          copied={copiedAddress}
+          publicKey={publicKey}
+        />
+      )}
+
+      <Paper
+        elevation={3}
+        sx={{
+          p: 1.5,
+          mb: 3,
+          borderRadius: 3,
+          overflow: 'hidden'
+        }}
+      >
         <TabContext value={tabValue}>
           <TabList
             onChange={handleTabChange}
             variant="scrollable"
-            scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
-              mb: 1,
+              minHeight: 48,
               '& .MuiTab-root': {
-                minHeight: 70,
-                fontSize: { xs: 11, sm: 13 }
+                minHeight: 48,
+                minWidth: 44,
+                padding: '6px 10px'
               }
             }}
           >
             <Tab
+              icon={<img src={real8Icon} alt="REAL8" width={22} height={22} style={{ objectFit: 'contain' }} />}
               value="real8"
-              icon={<StarIcon sx={{ fontSize: 30 }} />}
-              iconPosition="top"
-              label="REAL8"
+              aria-label="REAL8"
             />
             <Tab
+              icon={<AccountBalanceWallet fontSize="small" />}
+              value="wallet"
+              aria-label={isSpanish ? 'Billetera' : 'Wallet'}
+            />
+            <Tab
+              icon={<SendIcon fontSize="small" />}
+              value="send"
+              aria-label={isSpanish ? 'Enviar' : 'Send'}
+            />
+            <Tab
+              icon={<AddIcon fontSize="small" />}
               value="assets"
-              icon={<AccountBalanceWallet sx={{ fontSize: 30 }} />}
-              iconPosition="top"
-              label={t('assets') || 'Assets'}
+              aria-label={isSpanish ? 'Activos' : 'Assets'}
             />
             <Tab
-              value="transactions"
-              icon={<CompareArrows sx={{ fontSize: 30 }} />}
-              iconPosition="top"
-              label={t('transactions') || 'Transactions'}
-            />
-            <Tab
+              icon={<PoolIcon fontSize="small" />}
               value="pools"
-              icon={<PoolIcon sx={{ fontSize: 30 }} />}
-              iconPosition="top"
-              label={t('pools') || 'Pools'}
+              aria-label={isSpanish ? 'Pools' : 'Pools'}
             />
             <Tab
+              icon={<SettingsIcon fontSize="small" />}
               value="settings"
-              icon={<SettingsIcon sx={{ fontSize: 30 }} />}
-              iconPosition="top"
-              label={t('settings') || 'Settings'}
+              aria-label={isSpanish ? 'Configuración' : 'Settings'}
             />
           </TabList>
 
-          <TabPanel value="real8" sx={{ px: 0 }}>
+          <TabPanel value="real8" sx={{ px: 0, pt: 2 }}>
             <Real8Tab
-              onSend={() => {
-                // Preselect REAL8 by opening AddAsset if needed first:
-                const hasTrustline = balances.some(
-                  b => b.asset_code === REAL8.CODE
-                );
-                if (!hasTrustline) {
-                  setOpenAddAsset(true);
-                  return;
-                }
-                setOpenSend(true);
-              }}
-              onReceive={openReceiveDialog}
-              onAddTrustline={handleAddTrustline}
+              onSend={() => setOpenSend(true)}
+              onReceive={() => setOpenReceive(true)}
+              onAddTrustline={() => setOpenAddAsset(true)}
             />
           </TabPanel>
 
+          <TabPanel value="wallet" sx={{ px: 0, pt: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              {isSpanish ? 'Resumen de Billetera' : 'Wallet Overview'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {isSpanish
+                ? 'Contenido pendiente de migración.'
+                : 'Content placeholder – migrate existing wallet summary here.'}
+            </Typography>
+          </TabPanel>
+
+          <TabPanel value="send" sx={{ px: 0, pt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              {isSpanish
+                ? 'Usa la acción Enviar (icono) o abre el diálogo.'
+                : 'Use the Send icon action or open the dialog.'}
+            </Typography>
+          </TabPanel>
+
           <TabPanel value="assets" sx={{ px: 0, pt: 2 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                mb: 2,
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: 1
-              }}
-            >
-              <Typography variant="h6">
-                {t('myAssets') || 'My Assets'}
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={() => setOpenAddAsset(true)}
-                disabled={unfunded}
-              >
-                {t('addAsset') || 'Add Asset'}
-              </Button>
-            </Box>
-            <List dense>
-              {nonReal8Balances.map((b, i) => {
-                const isNative =
-                  b.asset_type === 'native' || b.asset_code === 'XLM';
-                const code = isNative ? 'XLM' : b.asset_code || '—';
-                return (
-                  <React.Fragment
-                    key={`${code}-${b.asset_issuer || 'native'}-${i}`}
-                  >
-                    <ListItem>
-                      <ListItemText
-                        primary={
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1
-                            }}
-                          >
-                            {isNative ? (
-                              <img
-                                src="https://s3.amazonaws.com/cdn.coindisco.com/currencies/logo/xlm_stellar.png"
-                                alt="XLM"
-                                width={22}
-                                height={22}
-                                onError={e => {
-                                  (e.currentTarget as HTMLImageElement).style.display =
-                                    'none';
-                                }}
-                              />
-                            ) : code === REAL8.CODE ? (
-                              <img
-                                src={real8Icon}
-                                alt="REAL8"
-                                width={22}
-                                height={22}
-                                onError={e => {
-                                  (e.currentTarget as HTMLImageElement).style.display =
-                                    'none';
-                                }}
-                              />
-                            ) : null}
-                            <Typography variant="body2">
-                              {isNative ? 'Stellar Lumens (XLM)' : code}
-                            </Typography>
-                          </Box>
-                        }
-                        secondary={`${b.balance} ${code}`}
-                      />
-                    </ListItem>
-                    {i < nonReal8Balances.length - 1 && (
-                      <Divider component="li" />
-                    )}
-                  </React.Fragment>
-                );
-              })}
-              {nonReal8Balances.length === 0 && (
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  {unfunded
-                    ? 'Account unfunded – fund to see balances.'
-                    : 'No balances found.'}
-                </Alert>
-              )}
-            </List>
-          </TabPanel>
-
-          <TabPanel value="transactions">
-            <Typography variant="h6" gutterBottom>
-              {t('recentTransactions') || 'Recent Transactions'}
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              {t('noTransactions') || 'No transactions yet.'}
+            <Typography variant="body2" color="text.secondary">
+              {isSpanish
+                ? 'Gestión de activos pendiente.'
+                : 'Assets management placeholder.'}
             </Typography>
           </TabPanel>
 
-          <TabPanel value="pools">
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                mb: 2,
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: 1
-              }}
-            >
-              <Typography variant="h6">
-                {t('liquidityPools') || 'Liquidity Pools'}
-              </Typography>
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setOpenJoinPool(true)}
-                disabled={unfunded}
-              >
-                {t('joinPool') || 'Join Pool'}
-              </Button>
-            </Box>
-            <Alert severity="info">
-              {t('noLiquidityPools') || 'No pools joined yet.'}
-            </Alert>
+          <TabPanel value="pools" sx={{ px: 0, pt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              {isSpanish
+                ? 'Participación en pools en esta sección.'
+                : 'Liquidity pool participation will appear here.'}
+            </Typography>
           </TabPanel>
 
-          <TabPanel value="settings">
-            <Typography variant="h6" gutterBottom>
-              {t('settings') || 'Settings'}
-            </Typography>
-            <Typography variant="subtitle2" gutterBottom>
-              {t('publicKey') || 'Public Key'}
-            </Typography>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                mb: 2,
-                gap: 1,
-                flexDirection: { xs: 'column', sm: 'row' }
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{
-                  fontFamily: 'monospace',
-                  wordBreak: 'break-all',
-                  flex: 1
-                }}
-              >
-                {publicKey}
+            <TabPanel value="settings" sx={{ px: 0, pt: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                {isSpanish
+                  ? 'Configuraciones adicionales aquí.'
+                  : 'Additional settings here.'}
               </Typography>
-              <IconButton onClick={handleCopyAddress} size="small">
-                {copiedAddress ? <CheckIcon /> : <ContentCopyIcon />}
-              </IconButton>
-            </Box>
-
-            <Box
-              sx={{
-                p: 2,
-                border: '1px solid #e0e0e0',
-                borderRadius: 1,
-                bgcolor: '#fafafa',
-                mb: 2
-              }}
-            >
-              <Typography variant="subtitle2" gutterBottom color="error">
-                {t('privateKey') || 'Private Key'}
-              </Typography>
-              {!showPrivateKey ? (
-                <Button
-                  variant="outlined"
-                  color="warning"
-                  onClick={handleShowSecret}
-                >
-                  {t('showPrivateKey') || 'Show Private Key'}
-                </Button>
-              ) : (
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      fontFamily: 'monospace',
-                      wordBreak: 'break-all',
-                      p: 1,
-                      bgcolor: 'white',
-                      border: '1px solid #ddd',
-                      borderRadius: 1,
-                      mb: 1
-                    }}
-                  >
-                    {secretKey ||
-                      localStorage.getItem('WALLET_SECRET') ||
-                      localStorage.getItem('stellar_secret_key') ||
-                      '—'}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Button
-                      size="small"
-                      variant="contained"
-                      startIcon={
-                        copiedSecret ? <CheckIcon /> : <ContentCopyIcon />
-                      }
-                      onClick={handleCopySecret}
-                    >
-                      {copiedSecret
-                        ? t('copied') || 'Copied'
-                        : t('copyPrivateKey') || 'Copy'}
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={() => setShowPrivateKey(false)}
-                    >
-                      {t('hidePrivateKey') || 'Hide'}
-                    </Button>
-                  </Box>
-                  <Typography
-                    variant="caption"
-                    color="error"
-                    sx={{ display: 'block', mt: 1 }}
-                  >
-                    ⚠ {t('autoHideWarning') || 'Will auto-hide after timeout.'}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<LogoutIcon />}
-              onClick={disconnect}
-            >
-              {t('disconnect') || 'Disconnect'}
-            </Button>
-          </TabPanel>
+            </TabPanel>
         </TabContext>
       </Paper>
 
-      {/* Dialogs */}
-      <SendDialog
-        open={openSend}
-        onClose={() => setOpenSend(false)}
-        defaultIssuer={REAL8.ISSUER}
-      />
+      <SendDialog open={openSend} onClose={() => setOpenSend(false)} />
       <ReceiveDialog
         open={openReceive}
         onClose={() => setOpenReceive(false)}
         publicKey={publicKey}
+        onCopyAddress={handleCopyAddress}
+        copiedAddress={copiedAddress}
         qrCodeUrl={qrCodeUrl}
-        onCopy={handleCopyAddress}
-        copied={copiedAddress}
-        generating={qrGenerating}
+        generateQr={generateQr}
+        qrGenerating={qrGenerating}
       />
-      <AddAssetDialog
-        open={openAddAsset}
-        onClose={() => setOpenAddAsset(false)}
-        defaultAssetCode={REAL8.CODE}
-        defaultIssuer={REAL8.ISSUER}
-      />
-      <JoinPoolDialog
-        open={openJoinPool}
-        onClose={() => setOpenJoinPool(false)}
-        defaultIssuer={REAL8.ISSUER}
-      />
+      <AddAssetDialog open={openAddAsset} onClose={() => setOpenAddAsset(false)} />
+      <JoinPoolDialog open={openJoinPool} onClose={() => setOpenJoinPool(false)} />
       <PrivateKeyWarningDialog
         open={openPkWarning}
-        onCancel={() => setOpenPkWarning(false)}
-        onConfirm={confirmShowSecret}
+        onClose={() => setOpenPkWarning(false)}
+        secretKey={
+          secretKey ||
+          localStorage.getItem('WALLET_SECRET') ||
+          localStorage.getItem('stellar_secret_key') ||
+          ''
+        }
+        showPrivateKey={showPrivateKey}
+        setShowPrivateKey={setShowPrivateKey}
+        onCopySecret={handleCopySecret}
+        copiedSecret={copiedSecret}
       />
     </Box>
   );
