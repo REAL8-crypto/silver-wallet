@@ -6,9 +6,7 @@ import React, {
   useCallback,
   useRef
 } from 'react';
-
-// Decide at load time whether to use real SDK (runtime) or a test stub (jest)
-const IS_TEST = process.env.NODE_ENV === 'test';
+import { Server, Keypair, Asset, TransactionBuilder, Operation, Networks, Memo } from '@stellar/stellar-sdk';
 
 type NetworkMode = 'testnet' | 'public';
 
@@ -25,128 +23,6 @@ interface BalanceLine {
   is_authorized_to_maintain_liabilities?: boolean;
   is_clawback_enabled?: boolean;
 }
-
-// ---------- Lightweight Test Stub (only used under NODE_ENV=test) ----------
-function buildTestStub() {
-  class Server {
-    url: string;
-    constructor(url: string) {
-      this.url = url;
-    }
-    async loadAccount(_pk: string) {
-      // Simulate unfunded; mirror Horizon 404 shape where consumed
-      const err: any = new Error('Not Found');
-      err.response = { status: 404 };
-      throw err;
-    }
-    async fetchBaseFee() {
-      return 100;
-    }
-    async submitTransaction(_tx: any) {
-      return { hash: 'TEST_HASH' };
-    }
-  }
-
-  class Keypair {
-    static random() {
-      return new Keypair();
-    }
-    static fromSecret(_s: string) {
-      return new Keypair();
-    }
-    secret() {
-      return 'S'.padEnd(56, 'X');
-    }
-    publicKey() {
-      return 'G'.padEnd(56, 'Y');
-    }
-  }
-
-  class Asset {
-    static native() {
-      return new Asset('XLM', '');
-    }
-    code: string;
-    issuer: string;
-    constructor(code: string, issuer: string) {
-      this.code = code;
-      this.issuer = issuer;
-    }
-  }
-
-  class TransactionBuilder {
-    account: any;
-    opts: any;
-    ops: any[];
-    memo: any;
-    constructor(account: any, opts: any) {
-      this.account = account;
-      this.opts = opts;
-      this.ops = [];
-      this.memo = undefined;
-    }
-    addOperation(op: any) {
-      this.ops.push(op);
-      return this;
-    }
-    addMemo(m: any) {
-      this.memo = m;
-      return this;
-    }
-    setTimeout() {
-      return this;
-    }
-    build() {
-      return {
-        sign: () => {},
-        toXDR: () => 'XDR'
-      };
-    }
-  }
-
-  const Operation = {
-    payment: (o: any) => ({ type: 'payment', ...o }),
-    changeTrust: (o: any) => ({ type: 'changeTrust', ...o })
-  };
-
-  const Networks = {
-    TESTNET: 'Test SDF Network ; September 2015',
-    PUBLIC: 'Public Global Stellar Network ; September 2015'
-  };
-
-  const Memo = {
-    text: (v: string) => ({ type: 'text', value: v })
-  };
-
-  return {
-    Server,
-    Keypair,
-    Asset,
-    TransactionBuilder,
-    Operation,
-    Networks,
-    Memo
-  };
-}
-
-// Either real SDK (runtime) or stub (tests)
-let Stellar: any;
-if (IS_TEST) {
-  Stellar = buildTestStub();
-} else {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  Stellar = require('@stellar/stellar-sdk');
-}
-
-const {
-  Server: HorizonServer,
-  Keypair,
-  Asset,
-  TransactionBuilder,
-  Operation,
-  Networks,
-  Memo
-} = Stellar;
 
 interface WalletContextValue {
   publicKey: string | null;
@@ -214,7 +90,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
   const cfg = getConfig(networkMode);
 
-  const [server, setServer] = useState<any>(() => new HorizonServer(cfg.url));
+  const serverRef = useRef<Server>(new Server(cfg.url));
 
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [secretKey, setSecretKey] = useState<string | null>(null);
@@ -230,9 +106,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const pollingRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setServer(new HorizonServer(cfg.url));
+    serverRef.current = new Server(cfg.url);
     localStorage.setItem('NETWORK_MODE', networkMode);
-    if (publicKey && !IS_TEST) {
+    if (publicKey) {
       void refresh();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -240,17 +116,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const loadAccount = useCallback(
     async (pk: string) => {
-      if (IS_TEST) {
-        // Simulate unfunded quicker in tests
-        setUnfunded(true);
-        setBalance('0');
-        setBalances([]);
-        return;
-      }
       setError(null);
       try {
         setLoading(true);
-        const account = await server.loadAccount(pk);
+        const account = await serverRef.current.loadAccount(pk);
         setUnfunded(false);
 
         const native = (account.balances as BalanceLine[]).find(
@@ -272,7 +141,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setLoading(false);
       }
     },
-    [server]
+    []
   );
 
   const refresh = useCallback(async () => {
@@ -299,7 +168,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Poll
   useEffect(() => {
-    if (IS_TEST) return; // skip polling in tests
     if (pollingRef.current) {
       window.clearInterval(pollingRef.current);
       pollingRef.current = null;
@@ -351,8 +219,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   async function submitTx(builder: any, signer: any) {
     const tx = builder.setTimeout(120).build();
-    tx.sign?.(signer); // real SDK; stub has no-op
-    const res = await server.submitTransaction(tx);
+    tx.sign(signer);
+    const res = await serverRef.current.submitTransaction(tx);
     await refresh();
     return res;
   }
@@ -372,35 +240,30 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }) => {
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
     const kp = Keypair.fromSecret(secretKey);
-    const account = IS_TEST
-      ? { sequence: '0', balances: [] }
-      : await server.loadAccount(publicKey);
-    const fee = String(IS_TEST ? 100 : await server.fetchBaseFee());
+    const account = await serverRef.current.loadAccount(publicKey);
+    const fee = String(await serverRef.current.fetchBaseFee());
 
     const asset =
       !assetCode || assetCode === 'XLM'
         ? Asset.native()
         : new Asset(assetCode, issuer || '');
 
-    let builder = new TransactionBuilder(account, {
+    const builderOptions: any = {
       fee,
       networkPassphrase: cfg.passphrase
-    }).addOperation(
+    };
+
+    if (memoText) {
+      builderOptions.memo = Memo.text(memoText.slice(0, 28));
+    }
+
+    const builder = new TransactionBuilder(account, builderOptions).addOperation(
       Operation.payment({
         destination,
         asset,
         amount
       })
     );
-
-    if (memoText) {
-      if (typeof builder.addMemo === 'function') {
-        builder = builder.addMemo(Memo.text(memoText.slice(0, 28)));
-      } else {
-        // fallback for stub
-        (builder as any).memo = Memo.text(memoText.slice(0, 28));
-      }
-    }
 
     await submitTx(builder, kp);
   };
@@ -416,10 +279,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const addTrustline = async (assetCode: string, issuer: string, limit?: string) => {
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
     const kp = Keypair.fromSecret(secretKey);
-    const account = IS_TEST
-      ? { sequence: '0', balances: [] }
-      : await server.loadAccount(publicKey);
-    const fee = String(IS_TEST ? 100 : await server.fetchBaseFee());
+    const account = await serverRef.current.loadAccount(publicKey);
+    const fee = String(await serverRef.current.fetchBaseFee());
 
     const builder = new TransactionBuilder(account, {
       fee,
@@ -443,10 +304,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       throw new Error('Trustline balance must be zero before removal');
     }
     const kp = Keypair.fromSecret(secretKey);
-    const account = IS_TEST
-      ? { sequence: '0', balances: [] }
-      : await server.loadAccount(publicKey);
-    const fee = String(IS_TEST ? 100 : await server.fetchBaseFee());
+    const account = await serverRef.current.loadAccount(publicKey);
+    const fee = String(await serverRef.current.fetchBaseFee());
 
     const builder = new TransactionBuilder(account, {
       fee,
@@ -473,9 +332,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     maxAmountB: string;
   }) => {
     console.warn(
-      '[joinLiquidityPool] Placeholder invoked (test mode:',
-      IS_TEST,
-      '). Provide real implementation when ready.',
+      '[joinLiquidityPool] Placeholder invoked. Provide real implementation when ready.',
       { assetA, assetB, maxAmountA, maxAmountB }
     );
   };

@@ -57,6 +57,14 @@
       "last 1 safari version"
     ]
   },
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!(@stellar/stellar-sdk|@stellar/stellar-base|@noble|axios)/)"
+    ],
+    "moduleNameMapper": {
+      "@stellar/stellar-sdk": "<rootDir>/src/__mocks__/@stellar/stellar-sdk.js"
+    }
+  },
   "devDependencies": {
     "ajv": "^8.17.1",
     "ajv-keywords": "^5.1.0",
