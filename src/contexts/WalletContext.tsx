@@ -135,7 +135,16 @@ if (IS_TEST) {
   Stellar = buildTestStub();
 } else {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  Stellar = require('@stellar/stellar-sdk');
+  const StellarSDK = require('@stellar/stellar-sdk');
+  Stellar = {
+    Server: StellarSDK.Horizon.Server,
+    Keypair: StellarSDK.Keypair,
+    Asset: StellarSDK.Asset,
+    TransactionBuilder: StellarSDK.TransactionBuilder,
+    Operation: StellarSDK.Operation,
+    Networks: StellarSDK.Networks,
+    Memo: StellarSDK.Memo
+  };
 }
 
 const {

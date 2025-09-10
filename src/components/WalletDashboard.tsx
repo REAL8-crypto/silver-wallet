@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import {
   Box, Typography, Button, IconButton, Menu, MenuItem, Divider,
-  Paper, Alert, List, ListItem, ListItemText, Tab
+  Paper, Alert, List, ListItem, ListItemText, Tab, Switch, FormControlLabel,
+  Dialog, DialogTitle, DialogContent, DialogActions, Chip
 } from '@mui/material';
 import {
   Logout as LogoutIcon,
@@ -16,7 +17,8 @@ import {
   CompareArrows,
   Check as CheckIcon,
   ContentCopy as ContentCopyIcon,
-  Star as StarIcon
+  Star as StarIcon,
+  NetworkCheck as NetworkIcon
 } from '@mui/icons-material';
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 import { useTranslation } from 'react-i18next';
@@ -42,7 +44,9 @@ const WalletDashboard: React.FC = () => {
     balances,
     disconnect,
     unfunded,
-    isTestnet
+    isTestnet,
+    networkMode,
+    setNetworkMode
   } = useWallet();
 
   const [tabValue, setTabValue] = useState('real8'); // start on REAL8 for branding
@@ -54,6 +58,8 @@ const WalletDashboard: React.FC = () => {
   const [openAddAsset, setOpenAddAsset] = useState(false);
   const [openJoinPool, setOpenJoinPool] = useState(false);
   const [openPkWarning, setOpenPkWarning] = useState(false);
+  const [openNetworkDialog, setOpenNetworkDialog] = useState(false);
+  const [pendingNetworkMode, setPendingNetworkMode] = useState<'testnet' | 'public'>('testnet');
   const [showPrivateKey, setShowPrivateKey] = useState(false);
 
   // Copy flags
@@ -90,6 +96,20 @@ const WalletDashboard: React.FC = () => {
   };
 
   const handleShowSecret = () => setOpenPkWarning(true);
+
+  const handleNetworkChange = (newMode: 'testnet' | 'public') => {
+    setPendingNetworkMode(newMode);
+    setOpenNetworkDialog(true);
+  };
+
+  const confirmNetworkChange = () => {
+    setNetworkMode(pendingNetworkMode);
+    setOpenNetworkDialog(false);
+  };
+
+  const cancelNetworkChange = () => {
+    setOpenNetworkDialog(false);
+  };
 
   const confirmShowSecret = () => {
     setShowPrivateKey(true);
@@ -537,6 +557,49 @@ const WalletDashboard: React.FC = () => {
               )}
             </Box>
 
+            <Divider sx={{ my: 3 }} />
+
+            <Typography variant="h6" gutterBottom>
+              {t('network') || 'Network'}
+            </Typography>
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 2 }}>
+                <NetworkIcon color={isTestnet ? 'warning' : 'primary'} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {isTestnet ? (t('testnetNetwork') || 'Testnet Network') : (t('mainnetNetwork') || 'Mainnet Network')}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    {isTestnet 
+                      ? (t('testnetDescription') || 'Test environment for development and testing')
+                      : (t('mainnetDescription') || 'Live Stellar network with real assets')
+                    }
+                  </Typography>
+                </Box>
+                <Chip 
+                  label={isTestnet ? 'TESTNET' : 'MAINNET'} 
+                  color={isTestnet ? 'warning' : 'primary'}
+                  variant={isTestnet ? 'filled' : 'outlined'}
+                  size="small"
+                />
+              </Box>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={networkMode === 'public'}
+                    onChange={(e) => handleNetworkChange(e.target.checked ? 'public' : 'testnet')}
+                    color="primary"
+                  />
+                }
+                label={t('useMainnet') || 'Use Mainnet (Live Network)'}
+                sx={{ mb: 1 }}
+              />
+              <Typography variant="caption" color="textSecondary" display="block">
+                {t('networkSwitchWarning') || 'Switching networks will refresh your account data. Make sure you understand the differences between testnet and mainnet.'}
+              </Typography>
+            </Box>
+
             <Button
               variant="outlined"
               color="error"
@@ -580,6 +643,54 @@ const WalletDashboard: React.FC = () => {
         onCancel={() => setOpenPkWarning(false)}
         onConfirm={confirmShowSecret}
       />
+
+      {/* Network Switch Confirmation Dialog */}
+      <Dialog open={openNetworkDialog} onClose={cancelNetworkChange} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {t('switchNetwork') || 'Switch Network'}
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {pendingNetworkMode === 'public' ? (
+              <>
+                <Typography variant="body2" gutterBottom>
+                  {t('switchToMainnetWarning') || 'You are about to switch to the Stellar Mainnet (live network).'}
+                </Typography>
+                <Typography variant="body2">
+                  {t('mainnetConsequences') || 'This means you will be using real XLM and other assets. All transactions will be permanent and irreversible.'}
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography variant="body2" gutterBottom>
+                  {t('switchToTestnetWarning') || 'You are about to switch to the Stellar Testnet (test network).'}
+                </Typography>
+                <Typography variant="body2">
+                  {t('testnetConsequences') || 'This is a test environment. Assets have no real value and are used for development and testing purposes only.'}
+                </Typography>
+              </>
+            )}
+          </Alert>
+          <Typography variant="body2" color="textSecondary">
+            {t('networkSwitchAccountRefresh') || 'Your account data will be refreshed after switching networks.'}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelNetworkChange}>
+            {t('cancel') || 'Cancel'}
+          </Button>
+          <Button 
+            onClick={confirmNetworkChange} 
+            variant="contained" 
+            color={pendingNetworkMode === 'public' ? 'warning' : 'primary'}
+          >
+            {pendingNetworkMode === 'public' 
+              ? (t('switchToMainnet') || 'Switch to Mainnet')
+              : (t('switchToTestnet') || 'Switch to Testnet')
+            }
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
