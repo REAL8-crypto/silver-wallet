@@ -26,43 +26,92 @@ import {
   Info as InfoIcon
 } from '@mui/icons-material';
 
+// Canonical asset definitions (REAL8 base pairs)
+const ASSETS = {
+  REAL8: { code: 'REAL8', issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD' },
+  XLM:   { code: 'XLM', issuer: null }, // native
+  USDC:  { code: 'USDC', issuer: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN' }, // centre.io
+  EURC:  { code: 'EURC', issuer: 'GDHU6WRG4IEQXM5NZ4BMPKOXHW76MZM4Y2IEMFDVXBSDP6SJY4ITNPP2' }, // circle.com
+  SLVR:  { code: 'SLVR', issuer: 'GBZVELEQD3WBN3R3VAG64HVBDOZ76ZL6QPLSFGKWPFED33Q3234NSLVR' }, // mintx.co
+  GOLD:  { code: 'GOLD', issuer: 'GBC5ZGK6MQU3XG5Y72SXPA7P5R5NHYT2475SNEJB2U3EQ6J56QLVGOLD' }  // mintx.co
+} as const;
+
+type PoolDef = {
+  id: string;
+  assetA: { code: string; issuer: string | null };
+  assetB: { code: string; issuer: string | null };
+  tvl: number;   // total value locked (USD synthetic for now)
+  apy: number;   // mock APY
+  userShare: number; // mock user share (liquidity tokens held)
+  totalShares: number; // mock total LP tokens
+};
+
 const PoolsManager: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { publicKey, balances, joinLiquidityPool } = useWallet();
+  const { publicKey, joinLiquidityPool } = useWallet();
   const isSpanish = i18n.language.startsWith('es');
   const [loading, setLoading] = useState(false);
 
-  // Mock data for demonstration - in real implementation this would come from Horizon API
-  const availablePools = [
+  // Curated REAL8 base pools only (display order fixed)
+  const availablePools: PoolDef[] = [
     {
-      id: 'XLM-REAL8',
-      assetA: { code: 'XLM', issuer: null },
-      assetB: { code: 'REAL8', issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD' },
+      id: 'REAL8-XLM',
+      assetA: ASSETS.REAL8,
+      assetB: ASSETS.XLM,
       tvl: 125430.50,
       apy: 8.5,
       userShare: 0,
-      totalShares: 1000000
+      totalShares: 1_000_000
     },
     {
-      id: 'XLM-USDC',
-      assetA: { code: 'XLM', issuer: null },
-      assetB: { code: 'USDC', issuer: 'GA5ZSEJYB37JRC2FQI6WK4NDLPXUZL3AKOEDGOPYUFQHE2PDLJ4ALU8A' },
+      id: 'REAL8-USDC',
+      assetA: ASSETS.REAL8,
+      assetB: ASSETS.USDC,
       tvl: 2450000.75,
       apy: 5.2,
       userShare: 0,
-      totalShares: 5000000
+      totalShares: 5_000_000
+    },
+    {
+      id: 'REAL8-EURC',
+      assetA: ASSETS.REAL8,
+      assetB: ASSETS.EURC,
+      tvl: 430000.10,
+      apy: 4.9,
+      userShare: 0,
+      totalShares: 750_000
+    },
+    {
+      id: 'REAL8-SLVR',
+      assetA: ASSETS.REAL8,
+      assetB: ASSETS.SLVR,
+      tvl: 98500.42,
+      apy: 7.3,
+      userShare: 0,
+      totalShares: 400_000
+    },
+    {
+      id: 'REAL8-GOLD',
+      assetA: ASSETS.REAL8,
+      assetB: ASSETS.GOLD,
+      tvl: 152300.00,
+      apy: 6.1,
+      userShare: 0,
+      totalShares: 500_000
     }
   ];
 
   const userPools = availablePools.filter(pool => pool.userShare > 0);
 
   const handleJoinPool = async (poolId: string) => {
+    const pool = availablePools.find(p => p.id === poolId);
+    if (!pool) return;
     try {
       setLoading(true);
-      // This is a placeholder - real implementation would need more parameters
+      // Placeholder amounts; real implementation should compute proportional contributions
       await joinLiquidityPool({
-        assetA: { code: 'XLM' },
-        assetB: { code: 'REAL8' },
+        assetA: { code: pool.assetA.code, issuer: pool.assetA.issuer ?? undefined },
+        assetB: { code: pool.assetB.code, issuer: pool.assetB.issuer ?? undefined },
         maxAmountA: '100',
         maxAmountB: '100'
       });
@@ -109,7 +158,9 @@ const PoolsManager: React.FC = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell>{isSpanish ? 'Pool' : 'Pool'}</TableCell>
-                      <TableCell align="right">{isSpanish ? 'Tu Participación' : 'Your Share'}</TableCell>
+                      <TableCell align="right">
+                        {isSpanish ? 'Tu Participación' : 'Your Share'}
+                      </TableCell>
                       <TableCell align="right">{isSpanish ? 'Valor' : 'Value'}</TableCell>
                       <TableCell align="right">{isSpanish ? 'Recompensas' : 'Rewards'}</TableCell>
                       <TableCell align="center">{isSpanish ? 'Acciones' : 'Actions'}</TableCell>
@@ -250,7 +301,7 @@ const PoolsManager: React.FC = () => {
                     <Box sx={{ flex: '0 0 auto' }}>
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
                         <Button
-                          variant={pool.userShare > 0 ? "outlined" : "contained"}
+                          variant={pool.userShare > 0 ? 'outlined' : 'contained'}
                           size="small"
                           startIcon={<AddIcon />}
                           disabled={loading}
