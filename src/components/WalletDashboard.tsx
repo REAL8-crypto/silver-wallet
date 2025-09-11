@@ -304,7 +304,8 @@ const WalletDashboard: React.FC = () => {
               <Tooltip title={isSpanish ? 'Activos' : 'Assets'}>
                 <Tab icon={<AssetsIcon />} value="assets" aria-label="Assets" />
               </Tooltip>
-              <Tooltip title={isSpanish ? 'Pools' : 'Pools'}>
+              {/* Terminology update: Pool(s) -> Fondo(s) de Liquidez (ES) */}
+              <Tooltip title={isSpanish ? 'Fondos' : 'Pools'}>
                 <Tab icon={<PoolIcon />} value="pools" aria-label="Pools" />
               </Tooltip>
               <Tooltip title={isSpanish ? 'Ajustes' : 'Settings'}>
