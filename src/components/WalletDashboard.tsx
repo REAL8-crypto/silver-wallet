@@ -341,7 +341,12 @@ const WalletDashboard: React.FC = () => {
         generateQr={generateQr}
         qrGenerating={qrGenerating}
       />
-      <AddAssetDialog open={openAddAsset} onClose={() => setOpenAddAsset(false)} />
+      <AddAssetDialog 
+        open={openAddAsset} 
+        onClose={() => setOpenAddAsset(false)} 
+        defaultAssetCode="REAL8"
+        defaultIssuer="GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD"
+      />
       <JoinPoolDialog open={openJoinPool} onClose={() => setOpenJoinPool(false)} />
       <PrivateKeyWarningDialog
         open={openPkWarning}

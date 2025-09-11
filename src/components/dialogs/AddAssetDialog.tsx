@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Alert, Button, Typography
@@ -20,6 +20,22 @@ const AddAssetDialog: React.FC<AddAssetDialogProps> = ({
   const [issuer, setIssuer] = useState(defaultIssuer || '');
   const [error, setError] = useState('');
   const nativeBalance = parseFloat(nativeBalanceStr || '0');
+
+  // Auto-fill REAL8 issuer on open
+  useEffect(() => {
+    if (open) {
+      setAssetCode(defaultAssetCode || 'REAL8');
+      // Auto-fill REAL8 issuer if assetCode is REAL8 and no defaultIssuer provided
+      if (defaultIssuer) {
+        setIssuer(defaultIssuer);
+      } else if ((defaultAssetCode || 'REAL8') === 'REAL8') {
+        setIssuer('GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD');
+      } else {
+        setIssuer('');
+      }
+      setError('');
+    }
+  }, [open, defaultAssetCode, defaultIssuer]);
 
   const handleAdd = async () => {
     if (!assetCode || !issuer) {

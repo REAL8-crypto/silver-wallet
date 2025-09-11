@@ -11,7 +11,6 @@ import {
   Button,
   Divider,
   Chip,
-  Alert,
   TextField,
   Select,
   MenuItem,
@@ -328,14 +327,7 @@ const SettingsPanel: React.FC = () => {
               </Typography>
             </Box>
           </Box>
-          <Alert severity="info" sx={{ mt: 2 }}>
-            <Typography variant="body2">
-              {isSpanish 
-                ? 'REAL8 Wallet - Billetera segura para activos digitales respaldados por oro.'
-                : 'REAL8 Wallet - Secure wallet for gold-backed digital assets.'
-              }
-            </Typography>
-          </Alert>
+          {/* Removed branding tagline per user request */}
         </Paper>
       </Stack>
     </Box>
