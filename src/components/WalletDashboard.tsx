@@ -94,8 +94,10 @@ const WalletDashboard: React.FC = () => {
   };
 
   const isSpanish = i18n.language.startsWith('es');
+
+  // FIX: pass a value instead of a functional updater (previous version caused TS2345)
   const toggleNetwork = () => {
-    setNetworkMode((m: 'testnet' | 'mainnet') => (m === 'testnet' ? 'mainnet' : 'testnet'));
+    setNetworkMode(networkMode === 'testnet' ? 'mainnet' : 'testnet');
   };
 
   // URLs per your instructions
@@ -120,8 +122,8 @@ const WalletDashboard: React.FC = () => {
       {unfunded && (
         <FundingBanner
           publicKey={publicKey}
-            onCopyAddress={handleCopyAddress}
-            copiedAddress={copiedAddress}
+          onCopyAddress={handleCopyAddress}
+          copiedAddress={copiedAddress}
           unfunded={unfunded}
         />
       )}
@@ -292,13 +294,13 @@ const WalletDashboard: React.FC = () => {
             />
           </TabList>
 
-          <TabPanel value="real8" sx={{ px: 0, pt: 2 }}>
-            <Real8Tab
-              onSend={() => setOpenSend(true)}
-              onReceive={() => setOpenReceive(true)}
-              onAddTrustline={() => setOpenAddAsset(true)}
-            />
-          </TabPanel>
+            <TabPanel value="real8" sx={{ px: 0, pt: 2 }}>
+              <Real8Tab
+                onSend={() => setOpenSend(true)}
+                onReceive={() => setOpenReceive(true)}
+                onAddTrustline={() => setOpenAddAsset(true)}
+              />
+            </TabPanel>
 
           <TabPanel value="wallet" sx={{ px: 0, pt: 2 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>
