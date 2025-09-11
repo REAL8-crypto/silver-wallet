@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useWallet } from '../contexts/WalletContext';
 
 type Stats = {
@@ -58,6 +58,25 @@ async function fetchLastClosePrice(horizonBase: string, base: { type: 'native' |
   return null;
 }
 
+// Formatting helpers
+export function formatPrice(value: number | null, currency?: 'XLM' | 'USD'): string {
+  if (value == null || Number.isNaN(value)) return '—';
+  
+  if (currency === 'USD') {
+    if (value < 0.01) return '$' + value.toFixed(6);
+    return '$' + value.toFixed(4);
+  }
+  
+  // XLM or generic numbers
+  if (value < 0.0001) return value.toFixed(8);
+  return value.toFixed(6);
+}
+
+export function formatNumber(value: number | null): string {
+  if (value == null || Number.isNaN(value)) return '—';
+  return value.toLocaleString();
+}
+
 export function useReal8Stats(): Stats {
   const { isTestnet } = useWallet();
   const horizonBase = isTestnet ? 'https://horizon-testnet.stellar.org' : 'https://horizon.stellar.org';
@@ -79,7 +98,7 @@ export function useReal8Stats(): Stats {
     return u.toString();
   }, [horizonBase]);
 
-  async function poll() {
+  const poll = useCallback(async () => {
     try {
       // Supply via /assets (works on both networks)
       let totalSupply: number | null = null;
@@ -119,7 +138,7 @@ export function useReal8Stats(): Stats {
     } catch (e: any) {
       setState(s => ({ ...s, loading: false, error: e?.message || 'Failed to fetch stats' }));
     }
-  }
+  }, [assetUrl, isTestnet, horizonBase]);
 
   useEffect(() => {
     setState(s => ({ ...s, loading: true, error: null }));
@@ -129,7 +148,7 @@ export function useReal8Stats(): Stats {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [assetUrl, isTestnet]); // re-run when network changes
+  }, [poll]); // now includes poll as dependency
 
   return state;
 }
