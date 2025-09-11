@@ -37,7 +37,6 @@ const WalletDashboard: React.FC = () => {
   const {
     publicKey,
     secretKey,
-    balances,
     disconnect,
     unfunded,
     networkMode,
@@ -95,9 +94,9 @@ const WalletDashboard: React.FC = () => {
 
   const isSpanish = i18n.language.startsWith('es');
 
-  // FIX: pass a value instead of a functional updater (previous version caused TS2345)
+  // Use 'public' to match WalletContext NetworkMode
   const toggleNetwork = () => {
-    setNetworkMode(networkMode === 'testnet' ? 'mainnet' : 'testnet');
+    setNetworkMode(networkMode === 'testnet' ? 'public' : 'testnet');
   };
 
   // URLs per your instructions
@@ -117,6 +116,14 @@ const WalletDashboard: React.FC = () => {
     return val === key ? fallback : val;
   };
 
+  const networkToggleLabel = isSpanish
+    ? networkMode === 'testnet'
+      ? 'Cambiar a Red Pública'
+      : 'Cambiar a Testnet'
+    : networkMode === 'testnet'
+      ? 'Switch to Public Network'
+      : 'Switch to Testnet';
+
   return (
     <Box sx={{ mt: 2 }}>
       {unfunded && (
@@ -132,7 +139,7 @@ const WalletDashboard: React.FC = () => {
         elevation={4}
         sx={{
           mt: 2,
-          p: 2,
+            p: 2,
           borderRadius: 3
         }}
       >
@@ -221,13 +228,7 @@ const WalletDashboard: React.FC = () => {
                 closeMenu();
               }}
             >
-              {isSpanish
-                ? networkMode === 'testnet'
-                  ? 'Cambiar a Mainnet'
-                  : 'Cambiar a Testnet'
-                : networkMode === 'testnet'
-                  ? 'Switch to Mainnet'
-                  : 'Switch to Testnet'}
+              {networkToggleLabel}
             </MenuItem>
 
             <Divider />
@@ -294,13 +295,13 @@ const WalletDashboard: React.FC = () => {
             />
           </TabList>
 
-            <TabPanel value="real8" sx={{ px: 0, pt: 2 }}>
-              <Real8Tab
-                onSend={() => setOpenSend(true)}
-                onReceive={() => setOpenReceive(true)}
-                onAddTrustline={() => setOpenAddAsset(true)}
-              />
-            </TabPanel>
+          <TabPanel value="real8" sx={{ px: 0, pt: 2 }}>
+            <Real8Tab
+              onSend={() => setOpenSend(true)}
+              onReceive={() => setOpenReceive(true)}
+              onAddTrustline={() => setOpenAddAsset(true)}
+            />
+          </TabPanel>
 
           <TabPanel value="wallet" sx={{ px: 0, pt: 2 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>
