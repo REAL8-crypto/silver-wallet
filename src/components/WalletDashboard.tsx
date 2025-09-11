@@ -30,10 +30,11 @@ import JoinPoolDialog from './dialogs/JoinPoolDialog';
 import PrivateKeyWarningDialog from './dialogs/PrivateKeyWarningDialog';
 import QRCode from 'qrcode';
 import Real8Tab from './real8/Real8Tab';
+import Real8StatsGrid from './real8/Real8StatsGrid';
 import { REAL8 } from '../constants/real8Asset';
 
+import { Typography as MuiTypography } from '@mui/material';
 import real8Logo from '../assets/real8-logo.png';
-import real8Icon from '../assets/real8-icon.png';
 
 const WalletDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -155,10 +156,11 @@ const WalletDashboard: React.FC = () => {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-            <img
+            <Box
+              component="img"
               src={real8Logo}
               alt={`${REAL8.BRAND_NAME} logo`}
-              style={{ height: 28, width: 'auto', display: 'block' }}
+              sx={{ height: { xs: 28, md: 56 }, width: 'auto', display: 'block' }}
             />
             <Typography variant="h6" sx={{ fontWeight: 600, opacity: 0.85 }}>
               Wallet
@@ -176,7 +178,9 @@ const WalletDashboard: React.FC = () => {
                 color={isSpanish ? 'primary' : 'default'}
                 aria-label="Cambiar a español"
               >
-                <span style={{ fontSize: 20, lineHeight: 1 }}>🇪🇸</span>
+                <MuiTypography component="span" sx={{ fontSize: { xs: 20, md: 30 }, lineHeight: 1 }}>
+                  🇪🇸
+                </MuiTypography>
               </IconButton>
             </Tooltip>
             <Tooltip title="English">
@@ -186,7 +190,9 @@ const WalletDashboard: React.FC = () => {
                 color={!isSpanish ? 'primary' : 'default'}
                 aria-label="Switch to English"
               >
-                <span style={{ fontSize: 20, lineHeight: 1 }}>🇺🇸</span>
+                <MuiTypography component="span" sx={{ fontSize: { xs: 20, md: 30 }, lineHeight: 1 }}>
+                  🇺🇸
+                </MuiTypography>
               </IconButton>
             </Tooltip>
           </Box>
@@ -258,53 +264,62 @@ const WalletDashboard: React.FC = () => {
           </Menu>
         </Box>
 
-        {/* Icon-only, responsive, full-width tabs */}
+        {/* REAL8 box ABOVE icons, border only */}
+        <Real8StatsGrid />
+
+        {/* Icon-only, responsive, centered tabs block with larger side margins on desktop */}
         <TabContext value={tabValue}>
-          <TabList
-            onChange={handleTabChange}
-            variant="fullWidth"
+          <Box
             sx={{
-              mb: { xs: 0.5, sm: 1 },
-              px: { xs: 0.5, sm: 1 },
-              '.MuiTabs-flexContainer': {
-                alignItems: 'center',
-                // space-between gives visible gaps that scale with container width
-                justifyContent: 'space-between',
-                gap: { xs: 0.5, sm: 1, md: 1.5 }
-              },
-              '.MuiTab-root': {
-                // Make each tab flex to occupy full width evenly
-                flex: 1,
-                minWidth: 0,
-                minHeight: { xs: 56, sm: 68, md: 84 },
-                py: 0,
-                // Center icon and remove text spacing
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              },
-              '.MuiTab-root .MuiSvgIcon-root': {
-                // Responsive icon sizes: smaller on mobile, larger on desktop
-                fontSize: { xs: 26, sm: 34, md: 44, lg: 52 }
-              }
+              // Center the whole tabs block; give larger side margins on desktop
+              maxWidth: { xs: '100%', md: 760, lg: 880 },
+              mx: 'auto',
+              px: { xs: 0.5, sm: 1, md: 4, lg: 6 }
             }}
           >
-            <Tooltip title={isSpanish ? 'REAL8' : 'REAL8'}>
-              <Tab icon={<SendIcon />} value="real8" aria-label="REAL8" />
-            </Tooltip>
-            <Tooltip title={isSpanish ? 'Billetera' : 'Wallet'}>
-              <Tab icon={<WalletIcon />} value="wallet" aria-label="Wallet" />
-            </Tooltip>
-            <Tooltip title={isSpanish ? 'Activos' : 'Assets'}>
-              <Tab icon={<AssetsIcon />} value="assets" aria-label="Assets" />
-            </Tooltip>
-            <Tooltip title={isSpanish ? 'Pools' : 'Pools'}>
-              <Tab icon={<PoolIcon />} value="pools" aria-label="Pools" />
-            </Tooltip>
-            <Tooltip title={isSpanish ? 'Ajustes' : 'Settings'}>
-              <Tab icon={<SettingsIcon />} value="settings" aria-label="Settings" />
-            </Tooltip>
-          </TabList>
+            <TabList
+              onChange={handleTabChange}
+              variant="fullWidth"
+              sx={{
+                mb: { xs: 0.5, sm: 1 },
+                '.MuiTabs-flexContainer': {
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: { xs: 0.5, sm: 0.75, md: 1, lg: 1.25 } // slightly closer together
+                },
+                '.MuiTab-root': {
+                  // Full width on mobile, auto on desktop to keep them tighter
+                  flex: { xs: 1, md: '0 0 auto' },
+                  minWidth: { xs: 0, md: 72 },
+                  minHeight: { xs: 56, sm: 64, md: 72 },
+                  py: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                },
+                '.MuiTab-root .MuiSvgIcon-root': {
+                  // Reduce desktop icon size to ~75% of previous
+                  fontSize: { xs: 26, sm: 30, md: 33, lg: 39 }
+                }
+              }}
+            >
+              <Tooltip title={isSpanish ? 'REAL8' : 'REAL8'}>
+                <Tab icon={<SendIcon />} value="real8" aria-label="REAL8" />
+              </Tooltip>
+              <Tooltip title={isSpanish ? 'Billetera' : 'Wallet'}>
+                <Tab icon={<WalletIcon />} value="wallet" aria-label="Wallet" />
+              </Tooltip>
+              <Tooltip title={isSpanish ? 'Activos' : 'Assets'}>
+                <Tab icon={<AssetsIcon />} value="assets" aria-label="Assets" />
+              </Tooltip>
+              <Tooltip title={isSpanish ? 'Pools' : 'Pools'}>
+                <Tab icon={<PoolIcon />} value="pools" aria-label="Pools" />
+              </Tooltip>
+              <Tooltip title={isSpanish ? 'Ajustes' : 'Settings'}>
+                <Tab icon={<SettingsIcon />} value="settings" aria-label="Settings" />
+              </Tooltip>
+            </TabList>
+          </Box>
 
           <TabPanel value="real8" sx={{ px: 0, pt: 2 }}>
             <Real8Tab
