@@ -62,7 +62,7 @@ const AssetsManager: React.FC = () => {
       code: 'REAL8',
       issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD',
       name: 'REAL8',
-      description: isSpanish ? 'Token respaldado por oro' : 'Gold-backed token'
+      description: isSpanish ? 'Token respaldado por plata' : 'Silver-backed token'
     },
     {
       code: 'USDC',
