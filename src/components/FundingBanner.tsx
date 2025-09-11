@@ -29,42 +29,45 @@ const FundingBanner: React.FC<FundingBannerProps> = ({
   copied
 }) => {
   const { isTestnet } = useWallet();
-  if (!publicKey) return null;
-  if (typeof unfunded === 'boolean' && !unfunded) return null;
 
-  // Normalize handlers
-  const handleCopy = onCopyAddress || onCopy;
-  const isCopied = copiedAddress ?? copied ?? false;
-
+  // Hooks must be at the top (before any early returns)
   const [funding, setFunding] = useState(false);
   const [fundedOk, setFundedOk] = useState(false);
   const [fundError, setFundError] = useState<string | null>(null);
 
-  const friendbotUrl = `https://friendbot.stellar.org/?addr=${encodeURIComponent(publicKey)}`;
+  // Normalize handlers (not hooks)
+  const handleCopy = onCopyAddress || onCopy;
+  const isCopied = copiedAddress ?? copied ?? false;
+
+  // Build URL only if we have a key; otherwise blank (won't be used)
+  const friendbotUrl = publicKey
+    ? `https://friendbot.stellar.org/?addr=${encodeURIComponent(publicKey)}`
+    : '';
 
   const requestFunding = useCallback(async () => {
+    if (!publicKey) return;
     if (funding || fundedOk) return;
     setFunding(true);
     setFundError(null);
     try {
-      const res = await fetch(friendbotUrl, {
-        method: 'GET',
-        mode: 'cors'
-      });
+      const res = await fetch(friendbotUrl, { method: 'GET', mode: 'cors' });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Friendbot HTTP ${res.status}: ${text.slice(0, 140)}`);
       }
-      // Friendbot returns JSON with transaction hash
+      // Friendbot returns JSON; ignore parsing errors gracefully
       await res.json().catch(() => ({}));
       setFundedOk(true);
-      // Actual account funding will reflect after Horizon sees the tx; parent will re-render when unfunded flips
     } catch (e: any) {
       setFundError(e.message || 'Unknown friendbot error');
     } finally {
       setFunding(false);
     }
-  }, [friendbotUrl, funding, fundedOk]);
+  }, [publicKey, funding, fundedOk, friendbotUrl]);
+
+  // Early returns AFTER hooks are declared
+  if (!publicKey) return null;
+  if (typeof unfunded === 'boolean' && !unfunded) return null;
 
   return (
     <Alert
