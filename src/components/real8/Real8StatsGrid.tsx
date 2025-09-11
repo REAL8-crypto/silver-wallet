@@ -82,7 +82,7 @@ async function fetchLastClosePrice(params: {
   const records: any[] = json?._embedded?.records || [];
   if (!records.length) return null;
 
-  // Find the last bucket with any trades
+  // last non-empty bucket
   for (let i = records.length - 1; i >= 0; i--) {
     const r = records[i];
     const tradeCount = Number(r.trade_count || 0);
@@ -119,7 +119,7 @@ const Real8StatsGrid: React.FC = () => {
   const poll = async () => {
     setError(null);
     try {
-      // 1) Total Supply / Circulating via Horizon assets
+      // Supply via /assets
       let totalSupply: number | null = null;
       let circulating: number | null = null;
 
@@ -131,16 +131,15 @@ const Real8StatsGrid: React.FC = () => {
           const total = parseFloat(record.amount);
           if (!Number.isNaN(total)) {
             totalSupply = total;
-            // Circulating is non-trivial on-chain; use total as a conservative fallback
+            // Circulating: use total as conservative fallback (on-chain “circulating” cannot be inferred)
             circulating = total;
           }
         }
       }
 
-      // 2) Prices only on public network to avoid testnet 404s
+      // Prices only on public network to avoid testnet 404
       let priceReal8InXlm: number | null = null;
       let priceXlmInUsd: number | null = null;
-
       if (isPublic) {
         priceReal8InXlm = await fetchLastClosePrice({
           horizonBase,
@@ -151,7 +150,7 @@ const Real8StatsGrid: React.FC = () => {
         // XLM priced in USDC (1 XLM -> ? USDC)
         const xlmInUsdc = await fetchLastClosePrice({
           horizonBase,
-          base: { type: 'native' }, // 1 XLM
+          base: { type: 'native' },
           counter: { type: 'credit_alphanum4', code: USDC_PUBLIC.code, issuer: USDC_PUBLIC.issuer }
         });
         priceXlmInUsd = xlmInUsdc;
@@ -188,72 +187,53 @@ const Real8StatsGrid: React.FC = () => {
   }, [networkMode]);
 
   return (
-    <Box
-      sx={{
-        // Border-only container with 10px radius, no background
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: '10px',
-        p: { xs: 1.5, sm: 2 },
-        mb: { xs: 1.5, sm: 2 },
-        backgroundColor: 'transparent'
-      }}
-    >
-      <Box
-        sx={{
-          display: 'flex',
-          gap: { xs: 1.5, sm: 2, md: 3 },
-          flexWrap: 'wrap',
-          alignItems: 'stretch'
-        }}
-      >
-        <Box sx={{ minWidth: 160, flex: '1 1 160px' }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-            PRICE (XLM)
-          </Typography>
-          <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-            {formatPrice(stats.priceXlm, { currency: 'XLM' })}
-          </Typography>
-        </Box>
-
-        <Box sx={{ minWidth: 160, flex: '1 1 160px' }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-            PRICE (USD)
-          </Typography>
-          <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-            {formatPrice(stats.priceUsd, { currency: 'USD' })}
-          </Typography>
-        </Box>
-
-        <Box sx={{ minWidth: 160, flex: '1 1 160px' }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-            TOTAL SUPPLY
-          </Typography>
-          <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-            {formatNumber(stats.totalSupply)}
-          </Typography>
-        </Box>
-
-        <Box sx={{ minWidth: 160, flex: '1 1 160px' }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-            CIRCULATING
-          </Typography>
-          <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-            {formatNumber(stats.circulating)}
-          </Typography>
-        </Box>
-
-        {!loading && error && (
-          <Typography variant="caption" color="error" sx={{ width: '100%' }}>
-            {error}
-          </Typography>
-        )}
-        {stats.updatedAt && (
-          <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
-            Updated {stats.updatedAt.toLocaleTimeString()}
-          </Typography>
-        )}
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1.5, sm: 2 } }}>
+      <Box sx={{ minWidth: 160 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
+          PRICE (XLM)
+        </Typography>
+        <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
+          {formatPrice(stats.priceXlm, { currency: 'XLM' })}
+        </Typography>
       </Box>
+
+      <Box sx={{ minWidth: 160 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
+          PRICE (USD)
+        </Typography>
+        <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
+          {formatPrice(stats.priceUsd, { currency: 'USD' })}
+        </Typography>
+      </Box>
+
+      <Box sx={{ minWidth: 160 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
+          TOTAL SUPPLY
+        </Typography>
+        <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
+          {formatNumber(stats.totalSupply)}
+        </Typography>
+      </Box>
+
+      <Box sx={{ minWidth: 160 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
+          CIRCULATING
+        </Typography>
+        <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
+          {formatNumber(stats.circulating)}
+        </Typography>
+      </Box>
+
+      {!loading && error && (
+        <Typography variant="caption" color="error" sx={{ width: '100%' }}>
+          {error}
+        </Typography>
+      )}
+      {stats.updatedAt && (
+        <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
+          Updated {stats.updatedAt.toLocaleTimeString()}
+        </Typography>
+      )}
     </Box>
   );
 };
