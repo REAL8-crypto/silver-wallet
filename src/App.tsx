@@ -2,21 +2,14 @@ import React, { useEffect } from 'react';
 import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
-import { WalletProvider, useWallet } from './contexts/WalletContext';
-import WalletSetup from './components/WalletSetup';
+import { WalletProvider } from './contexts/WalletContext';
 import WalletDashboard from './components/WalletDashboard';
 
 const theme = createTheme({
   palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
+    primary: { main: '#1976d2' },
+    secondary: { main: '#dc004e' },
+    background: { default: '#f5f5f5' }
   },
   typography: {
     fontFamily: [
@@ -29,31 +22,13 @@ const theme = createTheme({
       'sans-serif',
       '"Apple Color Emoji"',
       '"Segoe UI Emoji"',
-      '"Segoe UI Symbol"',
-    ].join(','),
-  },
+      '"Segoe UI Symbol"'
+    ].join(',')
+  }
 });
-
-const WalletApp: React.FC = () => {
-  const { publicKey } = useWallet();
-
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        bgcolor: 'background.default',
-      }}
-    >
-      {publicKey ? <WalletDashboard /> : <WalletSetup />}
-    </Box>
-  );
-};
 
 const App: React.FC = () => {
   useEffect(() => {
-    // Set app-wide styles
     document.body.style.margin = '0';
     document.body.style.padding = '0';
     document.body.style.minHeight = '100vh';
@@ -65,7 +40,16 @@ const App: React.FC = () => {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <WalletProvider>
-          <WalletApp />
+          <Box
+            sx={{
+              minHeight: '100vh',
+              display: 'flex',
+              flexDirection: 'column',
+              bgcolor: 'background.default'
+            }}
+          >
+            <WalletDashboard />
+          </Box>
         </WalletProvider>
       </ThemeProvider>
     </I18nextProvider>
