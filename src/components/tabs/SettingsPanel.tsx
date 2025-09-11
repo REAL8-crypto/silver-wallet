@@ -329,10 +329,11 @@ const SettingsPanel: React.FC = () => {
             </Box>
           </Box>
           <Alert severity="info" sx={{ mt: 2 }}>
+            {/* Tagline update: gold -> silver (EN/ES) */}
             <Typography variant="body2">
               {isSpanish 
-                ? 'REAL8 Wallet - Billetera segura para activos digitales respaldados por oro.'
-                : 'REAL8 Wallet - Secure wallet for gold-backed digital assets.'
+                ? 'Billetera REAL8 - Respaldada por activos digitales de plata'
+                : 'REAL8 Wallet - Secure wallet for silver digital assets.'
               }
             </Typography>
           </Alert>
