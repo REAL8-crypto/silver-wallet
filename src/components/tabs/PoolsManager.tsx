@@ -125,14 +125,14 @@ const PoolsManager: React.FC = () => {
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-        {isSpanish ? 'Gestión de Pools de Liquidez' : 'Liquidity Pools Management'}
+        {isSpanish ? 'Gestión de Fondos de Liquidez' : 'Liquidity Pools Management'}
       </Typography>
 
       {!publicKey ? (
         <Paper sx={{ p: 3, textAlign: 'center' }}>
           <PoolIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
           <Typography variant="body1" color="text.secondary">
-            {isSpanish ? 'Conecta una billetera para participar en pools de liquidez' : 'Connect a wallet to participate in liquidity pools'}
+            {isSpanish ? 'Conecta una billetera para participar en fondos de liquidez' : 'Connect a wallet to participate in liquidity pools'}
           </Typography>
         </Paper>
       ) : (
@@ -141,7 +141,7 @@ const PoolsManager: React.FC = () => {
           <Alert severity="info" icon={<InfoIcon />}>
             <Typography variant="body2">
               {isSpanish 
-                ? 'Los pools de liquidez te permiten ganar recompensas proporcionando liquidez al protocolo. Siempre verifica los riesgos antes de participar.'
+                ? 'Los fondos de liquidez te permiten ganar recompensas proporcionando liquidez al protocolo. Siempre verifica los riesgos antes de participar.'
                 : 'Liquidity pools allow you to earn rewards by providing liquidity to the protocol. Always verify risks before participating.'
               }
             </Typography>
@@ -151,7 +151,7 @@ const PoolsManager: React.FC = () => {
           {userPools.length > 0 && (
             <Paper sx={{ p: 2 }}>
               <Typography variant="h6" gutterBottom>
-                {isSpanish ? 'Tus Pools Activos' : 'Your Active Pools'}
+                {isSpanish ? 'Tus Fondos Activos' : 'Your Active Pools'}
               </Typography>
               <TableContainer>
                 <Table size="small">
@@ -213,7 +213,7 @@ const PoolsManager: React.FC = () => {
                     {availablePools.length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {isSpanish ? 'Pools Disponibles' : 'Available Pools'}
+                    {isSpanish ? 'Fondos Disponibles' : 'Available Pools'}
                   </Typography>
                 </CardContent>
               </Card>
@@ -247,7 +247,7 @@ const PoolsManager: React.FC = () => {
           {/* Available Pools */}
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              {isSpanish ? 'Pools Disponibles' : 'Available Pools'}
+              {isSpanish ? 'Fondos Disponibles' : 'Available Pools'}
             </Typography>
             <Stack spacing={2}>
               {availablePools.map((pool) => (
@@ -319,7 +319,7 @@ const PoolsManager: React.FC = () => {
                   {pool.userShare > 0 && (
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="caption" color="text.secondary">
-                        {isSpanish ? 'Tu participación en el pool' : 'Your pool participation'}
+                        {isSpanish ? 'Tu participación en el fondo' : 'Your pool participation'}
                       </Typography>
                       <LinearProgress 
                         variant="determinate" 
@@ -343,10 +343,10 @@ const PoolsManager: React.FC = () => {
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Button variant="outlined" disabled>
-                {isSpanish ? 'Crear Pool' : 'Create Pool'}
+                {isSpanish ? 'Crear Fondo' : 'Create Pool'}
               </Button>
               <Button variant="outlined" disabled>
-                {isSpanish ? 'Análisis de Pool' : 'Pool Analytics'}
+                {isSpanish ? 'Análisis del Fondo' : 'Pool Analytics'}
               </Button>
               <Button variant="outlined" disabled>
                 {isSpanish ? 'Histórico de Recompensas' : 'Rewards History'}
