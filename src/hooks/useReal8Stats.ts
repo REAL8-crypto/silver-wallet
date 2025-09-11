@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useWallet } from '../contexts/WalletContext';
 
 type Stats = {
@@ -79,32 +79,49 @@ export function useReal8Stats(): Stats {
     return u.toString();
   }, [horizonBase]);
 
-  async function poll() {
+  const poll = useCallback(async () => {
     try {
       // Supply via /assets (works on both networks)
       let totalSupply: number | null = null;
       let circulating: number | null = null;
-      const aRes = await fetch(assetUrl, { cache: 'no-store', mode: 'cors' });
-      if (aRes.ok) {
-        const aJson = await aRes.json();
-        const record = aJson?.records?.[0];
-        if (record?.amount) {
-          const total = parseFloat(record.amount);
-          if (!Number.isNaN(total)) {
-            totalSupply = total;
-            circulating = total; // conservative fallback
+      try {
+        const aRes = await fetch(assetUrl, { cache: 'no-store', mode: 'cors' });
+        if (aRes.ok) {
+          const aJson = await aRes.json();
+          const records = aJson?.records || [];
+          const record = records[0];
+          if (record?.amount) {
+            const total = parseFloat(String(record.amount));
+            if (!Number.isNaN(total) && total >= 0) {
+              totalSupply = total;
+              circulating = total; // conservative fallback
+            }
           }
         }
+      } catch (e) {
+        // Silently tolerate asset supply fetch errors
+        console.warn('Failed to fetch asset supply:', e);
       }
 
       // Prices only on Mainnet
       let priceXlm: number | null = null;
       let priceUsd: number | null = null;
       if (!isTestnet) {
+        // Try direct REAL8/USDC price first
+        const directUsdPrice = await fetchLastClosePrice(horizonBase, { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer }, { type: 'credit_alphanum4', code: USDC_PUBLIC.code, issuer: USDC_PUBLIC.issuer });
+        
+        // Get REAL8/XLM price (keep existing logic)
         const px = await fetchLastClosePrice(horizonBase, { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer }, { type: 'native' });
-        const xlmInUsdc = await fetchLastClosePrice(horizonBase, { type: 'native' }, { type: 'credit_alphanum4', code: USDC_PUBLIC.code, issuer: USDC_PUBLIC.issuer });
         priceXlm = px;
-        if (px != null && xlmInUsdc != null) priceUsd = px * xlmInUsdc;
+        
+        if (directUsdPrice != null) {
+          // Use direct REAL8/USDC price if available
+          priceUsd = directUsdPrice;
+        } else if (px != null) {
+          // Fallback to REAL8/XLM * XLM/USDC calculation
+          const xlmInUsdc = await fetchLastClosePrice(horizonBase, { type: 'native' }, { type: 'credit_alphanum4', code: USDC_PUBLIC.code, issuer: USDC_PUBLIC.issuer });
+          if (xlmInUsdc != null) priceUsd = px * xlmInUsdc;
+        }
       }
 
       setState({
@@ -119,7 +136,7 @@ export function useReal8Stats(): Stats {
     } catch (e: any) {
       setState(s => ({ ...s, loading: false, error: e?.message || 'Failed to fetch stats' }));
     }
-  }
+  }, [assetUrl, isTestnet, horizonBase]);
 
   useEffect(() => {
     setState(s => ({ ...s, loading: true, error: null }));
@@ -129,7 +146,7 @@ export function useReal8Stats(): Stats {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [assetUrl, isTestnet]); // re-run when network changes
+  }, [assetUrl, isTestnet, horizonBase, poll]); // re-run when network changes
 
   return state;
 }
