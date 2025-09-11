@@ -31,11 +31,17 @@ import AddAssetDialog from './dialogs/AddAssetDialog';
 import JoinPoolDialog from './dialogs/JoinPoolDialog';
 import PrivateKeyWarningDialog from './dialogs/PrivateKeyWarningDialog';
 import QRCode from 'qrcode';
-import { useReal8Stats } from '../hooks/useReal8Stats';
 // This is the REAL8 content section with the icon and trustline CTA
 import Real8Tab from './real8/Real8Tab';
+import Real8StatsGrid from './real8/Real8StatsGrid';
 import { Typography as MuiTypography } from '@mui/material';
 import real8Logo from '../assets/real8-logo.png';
+
+// Tab components
+import WalletOverview from './tabs/WalletOverview';
+import AssetsManager from './tabs/AssetsManager';
+import PoolsManager from './tabs/PoolsManager';
+import SettingsPanel from './tabs/SettingsPanel';
 
 const WalletDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -45,7 +51,9 @@ const WalletDashboard: React.FC = () => {
     disconnect,
     isTestnet,
     generateWallet,
-    importSecret
+    importSecret,
+    networkMode,
+    setNetworkMode
   } = useWallet();
 
   const [tabValue, setTabValue] = useState('wallet');
@@ -67,11 +75,20 @@ const WalletDashboard: React.FC = () => {
   const [importKey, setImportKey] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
 
-  const stats = useReal8Stats();
+  const isSpanish = i18n.language.startsWith('es');
 
   const handleTabChange = (_: React.SyntheticEvent, v: string) => setTabValue(v);
   const openMenu = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
   const closeMenu = () => setAnchorEl(null);
+
+  const toggleNetwork = () => {
+    const newMode = networkMode === 'public' ? 'testnet' : 'public';
+    setNetworkMode(newMode);
+  };
+
+  const networkToggleLabel = networkMode === 'public' 
+    ? (isSpanish ? 'Cambiar a Testnet' : 'Switch to Testnet')
+    : (isSpanish ? 'Cambiar a Red Principal' : 'Switch to Public');
 
   const handleCopyAddress = () => {
     if (!publicKey) return;
@@ -101,8 +118,6 @@ const WalletDashboard: React.FC = () => {
       setQrGenerating(false);
     }
   };
-
-  const isSpanish = i18n.language.startsWith('es');
 
   const helpLink = isSpanish
     ? 'https://real8.org/es/compra-venta-de-real8/'
@@ -179,10 +194,9 @@ const WalletDashboard: React.FC = () => {
               {tr('buyDirect', isSpanish ? 'Compra Directa' : 'Buy Direct')}
             </MenuItem>
             <Divider />
-            {/* Network switch entry should be wired to context toggle if exposed */}
-            {/* <MenuItem onClick={() => { toggleNetwork(); closeMenu(); }}>
+            <MenuItem onClick={() => { toggleNetwork(); closeMenu(); }}>
               {networkToggleLabel}
-            </MenuItem> */}
+            </MenuItem>
             <Divider />
             <MenuItem onClick={() => { disconnect(); closeMenu(); }}>
               <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
@@ -250,51 +264,8 @@ const WalletDashboard: React.FC = () => {
             onAddTrustline={() => setOpenAddAsset(true)}
           />
 
-          {/* Single stats section (remove any duplicates elsewhere) */}
-          <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: { xs: 1.5, sm: 2 } }}>
-            <Box sx={{ minWidth: 160 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-                PRICE (XLM)
-              </Typography>
-              <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-                {stats.priceXlm == null ? '—' : (stats.priceXlm < 0.0001 ? stats.priceXlm.toFixed(8) : stats.priceXlm.toFixed(6))}
-              </Typography>
-            </Box>
-            <Box sx={{ minWidth: 160 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-                PRICE (USD)
-              </Typography>
-              <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-                {stats.priceUsd == null ? '—' : ('$' + (stats.priceUsd < 0.01 ? stats.priceUsd.toFixed(6) : stats.priceUsd.toFixed(4)))}
-              </Typography>
-            </Box>
-            <Box sx={{ minWidth: 160 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-                TOTAL SUPPLY
-              </Typography>
-              <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-                {stats.totalSupply == null ? '—' : stats.totalSupply.toLocaleString()}
-              </Typography>
-            </Box>
-            <Box sx={{ minWidth: 160 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-                CIRCULATING
-              </Typography>
-              <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-                {stats.circulating == null ? '—' : stats.circulating.toLocaleString()}
-              </Typography>
-            </Box>
-            {!stats.loading && stats.error && (
-              <Typography variant="caption" color="error" sx={{ width: '100%' }}>
-                {stats.error}
-              </Typography>
-            )}
-            {stats.updatedAt && (
-              <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
-                Updated {stats.updatedAt.toLocaleTimeString()}
-              </Typography>
-            )}
-          </Box>
+          {/* Single stats section using Real8StatsGrid component */}
+          <Real8StatsGrid />
         </Box>
 
         {/* Icon tabs: desktop-only sizing changes and centered with wider margins */}
@@ -345,29 +316,18 @@ const WalletDashboard: React.FC = () => {
             </TabList>
           </Box>
 
-          {/* Keep your original tab content here; placeholders shown */}
+          {/* Tab content with new components */}
           <TabPanel value="wallet" sx={{ px: 0, pt: 2 }}>
-            <Typography variant="h6" sx={{ mb: 1.5 }}>
-              {isSpanish ? 'Resumen de Billetera' : 'Wallet Overview'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {isSpanish ? 'Contenido pendiente de migración.' : 'Content placeholder.'}
-            </Typography>
+            <WalletOverview />
           </TabPanel>
           <TabPanel value="assets" sx={{ px: 0, pt: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              {isSpanish ? 'Gestión de activos pendiente.' : 'Assets management placeholder.'}
-            </Typography>
+            <AssetsManager />
           </TabPanel>
           <TabPanel value="pools" sx={{ px: 0, pt: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              {isSpanish ? 'Participación en pools en esta sección.' : 'Liquidity pools placeholder.'}
-            </Typography>
+            <PoolsManager />
           </TabPanel>
           <TabPanel value="settings" sx={{ px: 0, pt: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              {isSpanish ? 'Configuraciones adicionales aquí.' : 'Settings placeholder.'}
-            </Typography>
+            <SettingsPanel />
           </TabPanel>
         </TabContext>
       </Paper>
