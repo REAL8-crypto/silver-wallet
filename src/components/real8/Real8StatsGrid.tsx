@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Paper } from '@mui/material';
 import { useWallet } from '../../contexts/WalletContext';
 
 type Real8Stats = {
@@ -131,7 +131,7 @@ const Real8StatsGrid: React.FC = () => {
           const total = parseFloat(record.amount);
           if (!Number.isNaN(total)) {
             totalSupply = total;
-            // Circulating: use total as conservative fallback (on-chain “circulating” cannot be inferred)
+            // Circulating: use total as conservative fallback
             circulating = total;
           }
         }
@@ -150,7 +150,7 @@ const Real8StatsGrid: React.FC = () => {
         // XLM priced in USDC (1 XLM -> ? USDC)
         const xlmInUsdc = await fetchLastClosePrice({
           horizonBase,
-          base: { type: 'native' },
+            base: { type: 'native' },
           counter: { type: 'credit_alphanum4', code: USDC_PUBLIC.code, issuer: USDC_PUBLIC.issuer }
         });
         priceXlmInUsd = xlmInUsdc;
@@ -186,54 +186,78 @@ const Real8StatsGrid: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [networkMode]);
 
+  const statsItems = [
+    { label: 'PRICE (XLM)', value: formatPrice(stats.priceXlm, { currency: 'XLM' }) },
+    { label: 'PRICE (USD)', value: formatPrice(stats.priceUsd, { currency: 'USD' }) },
+    { label: 'TOTAL SUPPLY', value: formatNumber(stats.totalSupply) },
+    { label: 'CIRCULATING', value: formatNumber(stats.circulating) }
+  ];
+
   return (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1.5, sm: 2 } }}>
-      <Box sx={{ minWidth: 160 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-          PRICE (XLM)
-        </Typography>
-        <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-          {formatPrice(stats.priceXlm, { currency: 'XLM' })}
-        </Typography>
-      </Box>
+    <Box sx={{ mt: 1.75 }}>
+      <Box
+        sx={{
+          maxWidth: { xs: '100%', md: 760, lg: 880 }, // match width pattern of box above
+          mx: 'auto',
+          px: { xs: 0.5, sm: 1 }
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: { xs: 1.25, sm: 1.75 },
+            justifyContent: 'center',
+            alignItems: 'stretch',
+            textAlign: 'center'
+          }}
+        >
+          {statsItems.map(item => (
+            <Paper
+              key={item.label}
+              variant="outlined"
+              elevation={0}
+              sx={{
+                flex: '1 1 180px',
+                minWidth: 180,
+                maxWidth: 220,
+                p: { xs: 1.25, sm: 1.5 },
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0.5
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 600, letterSpacing: 0.6, opacity: 0.75 }}
+              >
+                {item.label}
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 500, lineHeight: 1.15, fontSize: { xs: '1.05rem', sm: '1.15rem' } }}
+              >
+                {loading ? '—' : item.value}
+              </Typography>
+            </Paper>
+          ))}
+        </Box>
 
-      <Box sx={{ minWidth: 160 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-          PRICE (USD)
-        </Typography>
-        <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-          {formatPrice(stats.priceUsd, { currency: 'USD' })}
-        </Typography>
+        <Box sx={{ mt: 1, textAlign: 'center' }}>
+          {stats.updatedAt && !loading && (
+            <Typography variant="caption" sx={{ display: 'block', opacity: 0.7 }}>
+              Updated {stats.updatedAt.toLocaleTimeString()}
+            </Typography>
+          )}
+          {error && (
+            <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
+              {error}
+            </Typography>
+          )}
+        </Box>
       </Box>
-
-      <Box sx={{ minWidth: 160 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-          TOTAL SUPPLY
-        </Typography>
-        <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-          {formatNumber(stats.totalSupply)}
-        </Typography>
-      </Box>
-
-      <Box sx={{ minWidth: 160 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
-          CIRCULATING
-        </Typography>
-        <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-          {formatNumber(stats.circulating)}
-        </Typography>
-      </Box>
-
-      {!loading && error && (
-        <Typography variant="caption" color="error" sx={{ width: '100%' }}>
-          {error}
-        </Typography>
-      )}
-      {stats.updatedAt && (
-        <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
-          Updated {stats.updatedAt.toLocaleTimeString()}
-        </Typography>
-      )}
     </Box>
   );
 };
