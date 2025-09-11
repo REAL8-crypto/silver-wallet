@@ -47,7 +47,7 @@ const WalletDashboard: React.FC = () => {
     setNetworkMode
   } = useWallet();
 
-  const [tabValue, setTabValue] = useState('real8');
+  const [tabValue, setTabValue] = useState('wallet'); // start on Wallet now that REAL8 box is above
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const [openSend, setOpenSend] = useState(false);
@@ -98,12 +98,10 @@ const WalletDashboard: React.FC = () => {
 
   const isSpanish = i18n.language.startsWith('es');
 
-  // Use 'public' to match WalletContext NetworkMode ('testnet' | 'public')
   const toggleNetwork = () => {
     setNetworkMode(networkMode === 'testnet' ? 'public' : 'testnet');
   };
 
-  // URLs per your instructions
   const helpLink = isSpanish
     ? 'https://real8.org/es/compra-venta-de-real8/'
     : 'https://real8.org/en/buy-real8/';
@@ -114,7 +112,6 @@ const WalletDashboard: React.FC = () => {
     ? 'https://real8.org/es/contact/'
     : 'https://real8.org/en/contact/';
 
-  // Safe translation fallback helper
   const tr = (key: string, fallback: string) => {
     const val = t(key);
     return val === key ? fallback : val;
@@ -147,7 +144,7 @@ const WalletDashboard: React.FC = () => {
           borderRadius: 3
         }}
       >
-        {/* Header row with left-aligned logo, right-aligned flags and menu */}
+        {/* Header */}
         <Box
           sx={{
             display: 'flex',
@@ -169,7 +166,7 @@ const WalletDashboard: React.FC = () => {
 
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Language flags OUTSIDE the menu, immediately to the left of the menu icon */}
+          {/* Language flags (desktop larger) */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mr: 0.5 }}>
             <Tooltip title="Español">
               <IconButton
@@ -264,17 +261,35 @@ const WalletDashboard: React.FC = () => {
           </Menu>
         </Box>
 
-        {/* REAL8 box ABOVE icons, border only */}
-        <Real8StatsGrid />
+        {/* REAL8 box (moved ABOVE icons). No background; 1px border, 10px radius */}
+        <Box
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: '10px',
+            p: { xs: 1.5, sm: 2 },
+            mb: { xs: 1.5, sm: 2 },
+            backgroundColor: 'transparent'
+          }}
+        >
+          <Real8Tab
+            onSend={() => setOpenSend(true)}
+            onReceive={() => setOpenReceive(true)}
+            onAddTrustline={() => setOpenAddAsset(true)}
+          />
+          {/* Inline stats (Horizon-only, no CORS) */}
+          <Box sx={{ mt: 1.5 }}>
+            <Real8StatsGrid />
+          </Box>
+        </Box>
 
         {/* Icon-only, responsive, centered tabs block with larger side margins on desktop */}
         <TabContext value={tabValue}>
           <Box
             sx={{
-              // Center the whole tabs block; give larger side margins on desktop
               maxWidth: { xs: '100%', md: 760, lg: 880 },
               mx: 'auto',
-              px: { xs: 0.5, sm: 1, md: 4, lg: 6 }
+              px: { xs: 0.5, sm: 1, md: 6, lg: 8 } // bigger desktop margins
             }}
           >
             <TabList
@@ -285,10 +300,9 @@ const WalletDashboard: React.FC = () => {
                 '.MuiTabs-flexContainer': {
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: { xs: 0.5, sm: 0.75, md: 1, lg: 1.25 } // slightly closer together
+                  gap: { xs: 0.5, sm: 0.75, md: 0.75, lg: 1 } // slightly closer together
                 },
                 '.MuiTab-root': {
-                  // Full width on mobile, auto on desktop to keep them tighter
                   flex: { xs: 1, md: '0 0 auto' },
                   minWidth: { xs: 0, md: 72 },
                   minHeight: { xs: 56, sm: 64, md: 72 },
@@ -298,14 +312,12 @@ const WalletDashboard: React.FC = () => {
                   justifyContent: 'center'
                 },
                 '.MuiTab-root .MuiSvgIcon-root': {
-                  // Reduce desktop icon size to ~75% of previous
+                  // ~75% of previous desktop size
                   fontSize: { xs: 26, sm: 30, md: 33, lg: 39 }
                 }
               }}
             >
-              <Tooltip title={isSpanish ? 'REAL8' : 'REAL8'}>
-                <Tab icon={<SendIcon />} value="real8" aria-label="REAL8" />
-              </Tooltip>
+              {/* Removed REAL8 tab since its box is above now */}
               <Tooltip title={isSpanish ? 'Billetera' : 'Wallet'}>
                 <Tab icon={<WalletIcon />} value="wallet" aria-label="Wallet" />
               </Tooltip>
@@ -320,14 +332,6 @@ const WalletDashboard: React.FC = () => {
               </Tooltip>
             </TabList>
           </Box>
-
-          <TabPanel value="real8" sx={{ px: 0, pt: 2 }}>
-            <Real8Tab
-              onSend={() => setOpenSend(true)}
-              onReceive={() => setOpenReceive(true)}
-              onAddTrustline={() => setOpenAddAsset(true)}
-            />
-          </TabPanel>
 
           <TabPanel value="wallet" sx={{ px: 0, pt: 2 }}>
             <Typography variant="h6" sx={{ mb: 1.5 }}>
