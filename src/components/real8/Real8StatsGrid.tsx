@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Paper, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { useWallet } from '../../contexts/WalletContext';
 
 type Real8Stats = {
@@ -21,9 +21,6 @@ const USDC_PUBLIC = {
   issuer: 'GA5ZSEJYB37JRC2FQI6WK4NDLPXUZL3AKOEDGOPYUFQHE2PDLJ4ALU8A'
 };
 
-// If you have a USDC testnet asset, place it here; otherwise we skip USD pricing on testnet.
-const USDC_TESTNET: { code: string; issuer: string } | null = null;
-
 function formatPrice(p: number | null, opts?: { currency?: 'XLM' | 'USD' }) {
   if (p == null || Number.isNaN(p)) return '—';
   if (opts?.currency === 'USD') {
@@ -39,40 +36,12 @@ function formatNumber(n: number | null): string {
   return n.toLocaleString();
 }
 
-const StatCard: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <Paper
-    elevation={2}
-    sx={{
-      p: 2,
-      borderRadius: 2,
-      flex: '1 1 160px',
-      minWidth: 160,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 0.5
-    }}
-  >
-    <Typography
-      variant="caption"
-      color="text.secondary"
-      sx={{ fontWeight: 600, letterSpacing: 0.5 }}
-    >
-      {label.toUpperCase()}
-    </Typography>
-    <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
-      {value}
-    </Typography>
-  </Paper>
-);
-
 async function fetchLastClosePrice(params: {
   horizonBase: string;
   base: { type: 'native' | 'credit_alphanum4' | 'credit_alphanum12'; code?: string; issuer?: string };
   counter: { type: 'native' | 'credit_alphanum4' | 'credit_alphanum12'; code?: string; issuer?: string };
-  // aggregation resolution in ms, e.g. 300000 (5m), 900000 (15m)
-  resolution?: number;
-  // lookback window in ms (default 24h)
-  lookbackMs?: number;
+  resolution?: number;    // ms (default 15m)
+  lookbackMs?: number;    // ms (default 24h)
 }): Promise<number | null> {
   const {
     horizonBase,
@@ -120,7 +89,6 @@ async function fetchLastClosePrice(params: {
     const baseVol = parseFloat(r.base_volume || '0');
     const counterVol = parseFloat(r.counter_volume || '0');
     if (tradeCount > 0 && baseVol > 0 && counterVol > 0) {
-      // price fields (open/close/avg/high/low) are strings representing counter/base
       const close = parseFloat(r.close);
       if (!Number.isNaN(close)) return close;
     }
@@ -130,8 +98,8 @@ async function fetchLastClosePrice(params: {
 
 const Real8StatsGrid: React.FC = () => {
   const { networkMode } = useWallet();
-  const isTestnet = networkMode !== 'public';
-  const horizonBase = isTestnet ? 'https://horizon-testnet.stellar.org' : 'https://horizon.stellar.org';
+  const isPublic = networkMode === 'public';
+  const horizonBase = isPublic ? 'https://horizon.stellar.org' : 'https://horizon-testnet.stellar.org';
 
   const [stats, setStats] = useState<Real8Stats>({
     priceXlm: null,
@@ -169,22 +137,22 @@ const Real8StatsGrid: React.FC = () => {
         }
       }
 
-      // 2) REAL8/XLM via trade_aggregations
-      const priceReal8InXlm = await fetchLastClosePrice({
-        horizonBase,
-        base: { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
-        counter: { type: 'native' }
-      });
-
-      // 3) XLM/USDC (USDC per 1 XLM) via trade_aggregations, then multiply
+      // 2) Prices only on public network to avoid testnet 404s
+      let priceReal8InXlm: number | null = null;
       let priceXlmInUsd: number | null = null;
-      const usdc = isTestnet ? USDC_TESTNET : USDC_PUBLIC;
 
-      if (usdc) {
+      if (isPublic) {
+        priceReal8InXlm = await fetchLastClosePrice({
+          horizonBase,
+          base: { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
+          counter: { type: 'native' }
+        });
+
+        // XLM priced in USDC (1 XLM -> ? USDC)
         const xlmInUsdc = await fetchLastClosePrice({
           horizonBase,
           base: { type: 'native' }, // 1 XLM
-          counter: { type: 'credit_alphanum4', code: usdc.code, issuer: usdc.issuer } // priced in USDC
+          counter: { type: 'credit_alphanum4', code: USDC_PUBLIC.code, issuer: USDC_PUBLIC.issuer }
         });
         priceXlmInUsd = xlmInUsdc;
       }
@@ -220,21 +188,72 @@ const Real8StatsGrid: React.FC = () => {
   }, [networkMode]);
 
   return (
-    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-      <StatCard label="Price (XLM)" value={formatPrice(stats.priceXlm, { currency: 'XLM' })} />
-      <StatCard label="Price (USD)" value={formatPrice(stats.priceUsd, { currency: 'USD' })} />
-      <StatCard label="Total Supply" value={formatNumber(stats.totalSupply)} />
-      <StatCard label="Circulating" value={formatNumber(stats.circulating)} />
-      {!loading && error && (
-        <Typography variant="caption" color="error" sx={{ width: '100%' }}>
-          {error}
-        </Typography>
-      )}
-      {stats.updatedAt && (
-        <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
-          Updated {stats.updatedAt.toLocaleTimeString()}
-        </Typography>
-      )}
+    <Box
+      sx={{
+        // Border-only container with 10px radius, no background
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: '10px',
+        p: { xs: 1.5, sm: 2 },
+        mb: { xs: 1.5, sm: 2 },
+        backgroundColor: 'transparent'
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          gap: { xs: 1.5, sm: 2, md: 3 },
+          flexWrap: 'wrap',
+          alignItems: 'stretch'
+        }}
+      >
+        <Box sx={{ minWidth: 160, flex: '1 1 160px' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
+            PRICE (XLM)
+          </Typography>
+          <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
+            {formatPrice(stats.priceXlm, { currency: 'XLM' })}
+          </Typography>
+        </Box>
+
+        <Box sx={{ minWidth: 160, flex: '1 1 160px' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
+            PRICE (USD)
+          </Typography>
+          <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
+            {formatPrice(stats.priceUsd, { currency: 'USD' })}
+          </Typography>
+        </Box>
+
+        <Box sx={{ minWidth: 160, flex: '1 1 160px' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
+            TOTAL SUPPLY
+          </Typography>
+          <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
+            {formatNumber(stats.totalSupply)}
+          </Typography>
+        </Box>
+
+        <Box sx={{ minWidth: 160, flex: '1 1 160px' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, letterSpacing: 0.5 }}>
+            CIRCULATING
+          </Typography>
+          <Typography variant="h6" sx={{ lineHeight: 1.1, fontWeight: 500 }}>
+            {formatNumber(stats.circulating)}
+          </Typography>
+        </Box>
+
+        {!loading && error && (
+          <Typography variant="caption" color="error" sx={{ width: '100%' }}>
+            {error}
+          </Typography>
+        )}
+        {stats.updatedAt && (
+          <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
+            Updated {stats.updatedAt.toLocaleTimeString()}
+          </Typography>
+        )}
+      </Box>
     </Box>
   );
 };
