@@ -32,6 +32,9 @@ import QRCode from 'qrcode';
 import Real8Tab from './real8/Real8Tab';
 import { REAL8 } from '../constants/real8Asset';
 
+import real8Logo from '../assets/real8-logo.png';
+import real8Icon from '../assets/real8-icon.png';
+
 const WalletDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
   const {
@@ -124,9 +127,6 @@ const WalletDashboard: React.FC = () => {
       ? 'Switch to Public Network'
       : 'Switch to Testnet';
 
-  // Try a brand logo if provided by constants; fallback to brand name
-  const logoSrc = (REAL8 as any).LOGO_SRC || (REAL8 as any).LOGO_URL || '';
-
   return (
     <Box sx={{ mt: 2 }}>
       {unfunded && (
@@ -142,7 +142,7 @@ const WalletDashboard: React.FC = () => {
         elevation={4}
         sx={{
           mt: 2,
-          p: 2,
+          p: { xs: 1.5, sm: 2 },
           borderRadius: 3
         }}
       >
@@ -151,21 +151,15 @@ const WalletDashboard: React.FC = () => {
           sx={{
             display: 'flex',
             alignItems: 'center',
-            mb: 2
+            mb: 1.5
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-            {logoSrc ? (
-              <img
-                src={logoSrc}
-                alt={`${REAL8.BRAND_NAME} logo`}
-                style={{ height: 28, width: 'auto', display: 'block' }}
-              />
-            ) : (
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                {REAL8.BRAND_NAME}
-              </Typography>
-            )}
+            <img
+              src={real8Logo}
+              alt={`${REAL8.BRAND_NAME} logo`}
+              style={{ height: 28, width: 'auto', display: 'block' }}
+            />
             <Typography variant="h6" sx={{ fontWeight: 600, opacity: 0.85 }}>
               Wallet
             </Typography>
@@ -180,6 +174,7 @@ const WalletDashboard: React.FC = () => {
                 size="small"
                 onClick={() => i18n.changeLanguage('es')}
                 color={isSpanish ? 'primary' : 'default'}
+                aria-label="Cambiar a español"
               >
                 <span style={{ fontSize: 20, lineHeight: 1 }}>🇪🇸</span>
               </IconButton>
@@ -189,6 +184,7 @@ const WalletDashboard: React.FC = () => {
                 size="small"
                 onClick={() => i18n.changeLanguage('en')}
                 color={!isSpanish ? 'primary' : 'default'}
+                aria-label="Switch to English"
               >
                 <span style={{ fontSize: 20, lineHeight: 1 }}>🇺🇸</span>
               </IconButton>
@@ -196,7 +192,7 @@ const WalletDashboard: React.FC = () => {
           </Box>
 
           <Tooltip title={isSpanish ? 'Menú' : 'Menu'}>
-            <IconButton onClick={openMenu} size="large">
+            <IconButton onClick={openMenu} size="large" aria-label="Open menu">
               <MoreIcon />
             </IconButton>
           </Tooltip>
@@ -262,25 +258,34 @@ const WalletDashboard: React.FC = () => {
           </Menu>
         </Box>
 
-        {/* Icon-only, responsive tabs with tooltips */}
+        {/* Icon-only, responsive, full-width tabs */}
         <TabContext value={tabValue}>
           <TabList
             onChange={handleTabChange}
-            variant="scrollable"
-            allowScrollButtonsMobile
-            scrollButtons
+            variant="fullWidth"
             sx={{
-              mb: 1,
+              mb: { xs: 0.5, sm: 1 },
+              px: { xs: 0.5, sm: 1 },
               '.MuiTabs-flexContainer': {
-                alignItems: 'center'
+                alignItems: 'center',
+                // space-between gives visible gaps that scale with container width
+                justifyContent: 'space-between',
+                gap: { xs: 0.5, sm: 1, md: 1.5 }
               },
               '.MuiTab-root': {
-                minHeight: { xs: 56, sm: 64 },
-                py: { xs: 0.5, sm: 1 },
-                minWidth: { xs: 56, sm: 72 }
+                // Make each tab flex to occupy full width evenly
+                flex: 1,
+                minWidth: 0,
+                minHeight: { xs: 56, sm: 68, md: 84 },
+                py: 0,
+                // Center icon and remove text spacing
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               },
               '.MuiTab-root .MuiSvgIcon-root': {
-                fontSize: { xs: 24, sm: 30, md: 36 }
+                // Responsive icon sizes: smaller on mobile, larger on desktop
+                fontSize: { xs: 26, sm: 34, md: 44, lg: 52 }
               }
             }}
           >
