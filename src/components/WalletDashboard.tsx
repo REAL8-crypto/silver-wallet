@@ -94,7 +94,7 @@ const WalletDashboard: React.FC = () => {
 
   const isSpanish = i18n.language.startsWith('es');
 
-  // Use 'public' to match WalletContext NetworkMode
+  // Use 'public' to match WalletContext NetworkMode ('testnet' | 'public')
   const toggleNetwork = () => {
     setNetworkMode(networkMode === 'testnet' ? 'public' : 'testnet');
   };
@@ -139,7 +139,7 @@ const WalletDashboard: React.FC = () => {
         elevation={4}
         sx={{
           mt: 2,
-            p: 2,
+          p: 2,
           borderRadius: 3
         }}
       >
