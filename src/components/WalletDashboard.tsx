@@ -124,6 +124,9 @@ const WalletDashboard: React.FC = () => {
       ? 'Switch to Public Network'
       : 'Switch to Testnet';
 
+  // Try a brand logo if provided by constants; fallback to brand name
+  const logoSrc = (REAL8 as any).LOGO_SRC || (REAL8 as any).LOGO_URL || '';
+
   return (
     <Box sx={{ mt: 2 }}>
       {unfunded && (
@@ -143,6 +146,7 @@ const WalletDashboard: React.FC = () => {
           borderRadius: 3
         }}
       >
+        {/* Header row with left-aligned logo, right-aligned flags and menu */}
         <Box
           sx={{
             display: 'flex',
@@ -150,18 +154,53 @@ const WalletDashboard: React.FC = () => {
             mb: 2
           }}
         >
-          <Typography
-            variant="h5"
-            sx={{ flexGrow: 1, fontWeight: 600, letterSpacing: 0.5 }}
-          >
-            {REAL8.BRAND_NAME} Wallet
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+            {logoSrc ? (
+              <img
+                src={logoSrc}
+                alt={`${REAL8.BRAND_NAME} logo`}
+                style={{ height: 28, width: 'auto', display: 'block' }}
+              />
+            ) : (
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                {REAL8.BRAND_NAME}
+              </Typography>
+            )}
+            <Typography variant="h6" sx={{ fontWeight: 600, opacity: 0.85 }}>
+              Wallet
+            </Typography>
+          </Box>
+
+          <Box sx={{ flexGrow: 1 }} />
+
+          {/* Language flags OUTSIDE the menu, immediately to the left of the menu icon */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mr: 0.5 }}>
+            <Tooltip title="Español">
+              <IconButton
+                size="small"
+                onClick={() => i18n.changeLanguage('es')}
+                color={isSpanish ? 'primary' : 'default'}
+              >
+                <span style={{ fontSize: 20, lineHeight: 1 }}>🇪🇸</span>
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="English">
+              <IconButton
+                size="small"
+                onClick={() => i18n.changeLanguage('en')}
+                color={!isSpanish ? 'primary' : 'default'}
+              >
+                <span style={{ fontSize: 20, lineHeight: 1 }}>🇺🇸</span>
+              </IconButton>
+            </Tooltip>
+          </Box>
 
           <Tooltip title={isSpanish ? 'Menú' : 'Menu'}>
             <IconButton onClick={openMenu} size="large">
               <MoreIcon />
             </IconButton>
           </Tooltip>
+
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
@@ -174,25 +213,6 @@ const WalletDashboard: React.FC = () => {
               }
             }}
           >
-            {/* Language flags */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, p: 1, pt: 1.5 }}>
-              <IconButton
-                size="small"
-                onClick={() => i18n.changeLanguage('es')}
-                color={isSpanish ? 'primary' : 'default'}
-              >
-                <span style={{ fontSize: 20 }}>🇪🇸</span>
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={() => i18n.changeLanguage('en')}
-                color={!isSpanish ? 'primary' : 'default'}
-              >
-                <span style={{ fontSize: 20 }}>🇺🇸</span>
-              </IconButton>
-            </Box>
-            <Divider />
-
             <MenuItem
               component="a"
               href={helpLink}
@@ -221,7 +241,6 @@ const WalletDashboard: React.FC = () => {
               {tr('buyDirect', isSpanish ? 'Compra Directa' : 'Buy Direct')}
             </MenuItem>
             <Divider />
-
             <MenuItem
               onClick={() => {
                 toggleNetwork();
@@ -230,9 +249,7 @@ const WalletDashboard: React.FC = () => {
             >
               {networkToggleLabel}
             </MenuItem>
-
             <Divider />
-
             <MenuItem
               onClick={() => {
                 disconnect();
@@ -245,54 +262,43 @@ const WalletDashboard: React.FC = () => {
           </Menu>
         </Box>
 
-        {/* Enlarged tab icons */}
+        {/* Icon-only, responsive tabs with tooltips */}
         <TabContext value={tabValue}>
           <TabList
             onChange={handleTabChange}
-            variant="fullWidth"
+            variant="scrollable"
+            allowScrollButtonsMobile
+            scrollButtons
             sx={{
-              mb: 2,
+              mb: 1,
               '.MuiTabs-flexContainer': {
-                justifyContent: 'space-between'
+                alignItems: 'center'
               },
               '.MuiTab-root': {
-                minHeight: 100,
-                py: 2,
-                flexDirection: 'column',
-                gap: 1,
-                fontSize: 14,
-                fontWeight: 600
+                minHeight: { xs: 56, sm: 64 },
+                py: { xs: 0.5, sm: 1 },
+                minWidth: { xs: 56, sm: 72 }
               },
               '.MuiTab-root .MuiSvgIcon-root': {
-                fontSize: 42
+                fontSize: { xs: 24, sm: 30, md: 36 }
               }
             }}
           >
-            <Tab icon={<SendIcon />} value="real8" aria-label="REAL8" label="REAL8" />
-            <Tab
-              icon={<WalletIcon />}
-              value="wallet"
-              aria-label="Wallet"
-              label={isSpanish ? 'Billetera' : 'Wallet'}
-            />
-            <Tab
-              icon={<AssetsIcon />}
-              value="assets"
-              aria-label="Assets"
-              label={isSpanish ? 'Activos' : 'Assets'}
-            />
-            <Tab
-              icon={<PoolIcon />}
-              value="pools"
-              aria-label="Pools"
-              label={isSpanish ? 'Pools' : 'Pools'}
-            />
-            <Tab
-              icon={<SettingsIcon />}
-              value="settings"
-              aria-label="Settings"
-              label={isSpanish ? 'Ajustes' : 'Settings'}
-            />
+            <Tooltip title={isSpanish ? 'REAL8' : 'REAL8'}>
+              <Tab icon={<SendIcon />} value="real8" aria-label="REAL8" />
+            </Tooltip>
+            <Tooltip title={isSpanish ? 'Billetera' : 'Wallet'}>
+              <Tab icon={<WalletIcon />} value="wallet" aria-label="Wallet" />
+            </Tooltip>
+            <Tooltip title={isSpanish ? 'Activos' : 'Assets'}>
+              <Tab icon={<AssetsIcon />} value="assets" aria-label="Assets" />
+            </Tooltip>
+            <Tooltip title={isSpanish ? 'Pools' : 'Pools'}>
+              <Tab icon={<PoolIcon />} value="pools" aria-label="Pools" />
+            </Tooltip>
+            <Tooltip title={isSpanish ? 'Ajustes' : 'Settings'}>
+              <Tab icon={<SettingsIcon />} value="settings" aria-label="Settings" />
+            </Tooltip>
           </TabList>
 
           <TabPanel value="real8" sx={{ px: 0, pt: 2 }}>
@@ -304,7 +310,7 @@ const WalletDashboard: React.FC = () => {
           </TabPanel>
 
           <TabPanel value="wallet" sx={{ px: 0, pt: 2 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1.5 }}>
               {isSpanish ? 'Resumen de Billetera' : 'Wallet Overview'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -330,9 +336,7 @@ const WalletDashboard: React.FC = () => {
 
           <TabPanel value="settings" sx={{ px: 0, pt: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              {isSpanish
-                ? 'Configuraciones adicionales aquí.'
-                : 'Additional settings here.'}
+              {isSpanish ? 'Configuraciones adicionales aquí.' : 'Additional settings here.'}
             </Typography>
           </TabPanel>
         </TabContext>
