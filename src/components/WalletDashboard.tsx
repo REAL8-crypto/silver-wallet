@@ -95,7 +95,7 @@ const WalletDashboard: React.FC = () => {
 
   const isSpanish = i18n.language.startsWith('es');
   const toggleNetwork = () => {
-    setNetworkMode(m => (m === 'testnet' ? 'mainnet' : 'testnet'));
+    setNetworkMode((m: 'testnet' | 'mainnet') => (m === 'testnet' ? 'mainnet' : 'testnet'));
   };
 
   // URLs per your instructions
@@ -120,8 +120,8 @@ const WalletDashboard: React.FC = () => {
       {unfunded && (
         <FundingBanner
           publicKey={publicKey}
-          onCopyAddress={handleCopyAddress}
-          copiedAddress={copiedAddress}
+            onCopyAddress={handleCopyAddress}
+            copiedAddress={copiedAddress}
           unfunded={unfunded}
         />
       )}
@@ -311,19 +311,19 @@ const WalletDashboard: React.FC = () => {
             </Typography>
           </TabPanel>
 
-            <TabPanel value="assets" sx={{ px: 0, pt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                {isSpanish ? 'Gestión de activos pendiente.' : 'Assets management placeholder.'}
-              </Typography>
-            </TabPanel>
+          <TabPanel value="assets" sx={{ px: 0, pt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              {isSpanish ? 'Gestión de activos pendiente.' : 'Assets management placeholder.'}
+            </Typography>
+          </TabPanel>
 
-            <TabPanel value="pools" sx={{ px: 0, pt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                {isSpanish
-                  ? 'Participación en pools en esta sección.'
-                  : 'Liquidity pool participation will appear here.'}
-              </Typography>
-            </TabPanel>
+          <TabPanel value="pools" sx={{ px: 0, pt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              {isSpanish
+                ? 'Participación en pools en esta sección.'
+                : 'Liquidity pool participation will appear here.'}
+            </Typography>
+          </TabPanel>
 
           <TabPanel value="settings" sx={{ px: 0, pt: 2 }}>
             <Typography variant="body2" color="text.secondary">
