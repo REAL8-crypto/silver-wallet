@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWallet } from '../contexts/WalletContext';
 
 type Stats = {
@@ -79,7 +79,7 @@ export function useReal8Stats(): Stats {
     return u.toString();
   }, [horizonBase]);
 
-  async function poll() {
+  const poll = useCallback(async () => {
     try {
       // Supply via /assets (works on both networks)
       let totalSupply: number | null = null;
@@ -101,10 +101,39 @@ export function useReal8Stats(): Stats {
       let priceXlm: number | null = null;
       let priceUsd: number | null = null;
       if (!isTestnet) {
-        const px = await fetchLastClosePrice(horizonBase, { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer }, { type: 'native' });
-        const xlmInUsdc = await fetchLastClosePrice(horizonBase, { type: 'native' }, { type: 'credit_alphanum4', code: USDC_PUBLIC.code, issuer: USDC_PUBLIC.issuer });
-        priceXlm = px;
-        if (px != null && xlmInUsdc != null) priceUsd = px * xlmInUsdc;
+        // First attempt: direct REAL8/USDC trade aggregation
+        const directReal8Usdc = await fetchLastClosePrice(horizonBase, 
+          { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer }, 
+          { type: 'credit_alphanum4', code: USDC_PUBLIC.code, issuer: USDC_PUBLIC.issuer }
+        );
+        
+        if (directReal8Usdc != null) {
+          // Direct REAL8/USDC available
+          priceUsd = directReal8Usdc;
+          // Convert to XLM price if needed (REAL8/USD / XLM/USD = REAL8/XLM)
+          const xlmInUsdc = await fetchLastClosePrice(horizonBase, 
+            { type: 'native' }, 
+            { type: 'credit_alphanum4', code: USDC_PUBLIC.code, issuer: USDC_PUBLIC.issuer }
+          );
+          if (xlmInUsdc != null) {
+            priceXlm = directReal8Usdc / xlmInUsdc;
+          }
+        } else {
+          // Fallback: REAL8/XLM * XLM/USDC
+          const real8InXlm = await fetchLastClosePrice(horizonBase, 
+            { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer }, 
+            { type: 'native' }
+          );
+          const xlmInUsdc = await fetchLastClosePrice(horizonBase, 
+            { type: 'native' }, 
+            { type: 'credit_alphanum4', code: USDC_PUBLIC.code, issuer: USDC_PUBLIC.issuer }
+          );
+          
+          priceXlm = real8InXlm;
+          if (real8InXlm != null && xlmInUsdc != null) {
+            priceUsd = real8InXlm * xlmInUsdc;
+          }
+        }
       }
 
       setState({
@@ -119,7 +148,7 @@ export function useReal8Stats(): Stats {
     } catch (e: any) {
       setState(s => ({ ...s, loading: false, error: e?.message || 'Failed to fetch stats' }));
     }
-  }
+  }, [assetUrl, isTestnet, horizonBase]);
 
   useEffect(() => {
     setState(s => ({ ...s, loading: true, error: null }));
@@ -129,7 +158,7 @@ export function useReal8Stats(): Stats {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [assetUrl, isTestnet]); // re-run when network changes
+  }, [poll]); // re-run when poll changes (which depends on assetUrl, isTestnet, horizonBase)
 
   return state;
 }
