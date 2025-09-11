@@ -331,8 +331,8 @@ const SettingsPanel: React.FC = () => {
           <Alert severity="info" sx={{ mt: 2 }}>
             <Typography variant="body2">
               {isSpanish 
-                ? 'REAL8 Wallet - Billetera segura para activos digitales respaldados por oro.'
-                : 'REAL8 Wallet - Secure wallet for gold-backed digital assets.'
+                ? 'Billetera REAL8 - Activos digitales de la Red Stellar.'
+                : 'REAL8 Wallet - Stellar-based digital assets.'
               }
             </Typography>
           </Alert>
