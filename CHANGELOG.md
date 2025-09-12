@@ -2,6 +2,27 @@
 
 All notable changes to the REAL8 Stellar Wallet project will be documented in this file.
 
+## [1.0.1] - 2025-09-12
+
+### Added
+- REAL8 stats card layout: responsive centered cards for PRICE (XLM / USD), TOTAL SUPPLY, CIRCULATING
+- Fallback price calculation path (REAL8/XLM * XLM/USD) when direct REAL8/USD unavailable
+- Auto-prefill of REAL8 issuer + asset code in Add Trustline dialog
+- Comprehensive GitHub Copilot instructions for development workflow
+
+### Changed
+- Updated Settings panel tagline (removed previous gold/silver-backed phrasing)
+- Moved price/number formatting logic into stats hook for better separation of concerns
+- Dialog state reset on open for AddAssetDialog (ensures accurate defaults)
+
+### Fixed
+- Missing issuer field requiring manual paste when adding REAL8 trustline
+- Intermittent placeholder display inconsistencies in stats values (standardized placeholder formatting)
+
+### Developer
+- Improved internal structure of stats grid component (array-driven definitions)
+- Added clearer comments and guard conditions around trustline creation logic
+
 ## [1.0.0] - 2025-08-29
 
 ### 🎉 Initial Release
