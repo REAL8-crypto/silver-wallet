@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useWallet } from '../contexts/WalletContext';
-
 const JoinLiquidityPool: React.FC = () => {
   const { balances, joinLiquidityPool, loading } = useWallet();
   const [assetA, setAssetA] = useState<string>('XLM');

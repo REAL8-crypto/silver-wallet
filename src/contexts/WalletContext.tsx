@@ -1,25 +1,3 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-  useRef
-} from 'react';
-import * as Stellar from '@stellar/stellar-sdk';
-import { REAL8 } from '../constants/real8Asset'; // Added for REAL8 defaults
-
-const {
-  Keypair,
-  Asset,
-  TransactionBuilder,
-  Operation,
-  Networks,
-  Memo
-} = Stellar as any;
-
-type NetworkMode = 'testnet' | 'public';
-
 interface BalanceLine {
   asset_type: string;
   balance: string;
@@ -277,30 +255,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!serverRef.current) throw new Error('Server not initialized');
 
     try {
-      setLoading(true);
-      setError(null);
-
-      const kp = Keypair.fromSecret(secretKey);
-      const account = await serverRef.current.loadAccount(publicKey);
-      const fee = String(await serverRef.current.fetchBaseFee());
-      
-      const asset = assetCode && issuer ? new Asset(assetCode, issuer) : Asset.native();
-      const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
-        .addOperation(Operation.payment({
-          destination,
-          amount,
-          asset
-        }));
-
-      if (memoText) {
-        builder.addMemo(Memo.text(memoText));
-      }
-
-      await submitTx(builder, kp);
-    } catch (e: any) {
-      console.error('[sendPayment] Error:', e);
-      setError(e.message || 'Failed to send payment');
-      throw e;
     } finally {
       setLoading(false);
     }
@@ -323,25 +277,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!serverRef.current) throw new Error('Server not initialized');
 
     try {
-      setLoading(true);
-      setError(null);
-
-      const kp = Keypair.fromSecret(secretKey);
-      const account = await serverRef.current.loadAccount(publicKey);
-      const fee = String(await serverRef.current.fetchBaseFee());
-      
-      const asset = new Asset(assetCode, issuer);
-      const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
-        .addOperation(Operation.changeTrust({
-          asset,
-          limit
-        }));
-
-      await submitTx(builder, kp);
-    } catch (e: any) {
-      console.error('[addTrustline] Error:', e);
-      setError(e.message || 'Failed to add trustline');
-      throw e;
     } finally {
       setLoading(false);
     }
