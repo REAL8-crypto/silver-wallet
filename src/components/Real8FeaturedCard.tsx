@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Box, Paper, Typography, Button, Stack, Chip, Tooltip, CircularProgress
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { REAL8 } from '../constants/real8Asset';
 import real8Icon from '../assets/real8-icon.png';
 import { useWallet } from '../contexts/WalletContext';
@@ -23,6 +24,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
   priceUsd,
   compact
 }) => {
+  const { t } = useTranslation();
   const { balances, unfunded } = useWallet();
   const trustline = balances.find(b => b.asset_code === REAL8.CODE);
   const hasTrustline = !!trustline;
@@ -32,10 +34,10 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
   let statusColor: 'default' | 'warning' | 'success' = 'success';
 
   if (!hasTrustline) {
-    statusLabel = 'Trustline Missing';
+    statusLabel = t('trustlineMissing');
     statusColor = 'warning';
   } else if (parseFloat(balance) === 0) {
-    statusLabel = 'No Balance';
+    statusLabel = t('noBalance');
     statusColor = 'default';
   }
 
@@ -133,12 +135,12 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
           )}
           {!hasTrustline && !unfunded && (
             <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
-              Add the trustline to start receiving REAL8.
+              {t('addTrustlineToReceiveReal8')}
             </Typography>
           )}
           {unfunded && (
             <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
-              Fund account before adding trustlines.
+              {t('fundBeforeAddingTrustlines')}
             </Typography>
           )}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.2} sx={{ mt: 2 }}>
@@ -155,16 +157,16 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
                   '&:hover': { background: 'rgba(255,255,255,0.25)' }
                 }}
               >
-                Add Trustline
+                {t('addTrustline')}
               </Button>
             ) : (
               <>
                 <Tooltip
                   title={
                     unfunded
-                      ? 'Fund the account first.'
+                      ? t('fundBeforeAddingTrustlines')
                       : parseFloat(balance) === 0
-                        ? 'No balance to send yet.'
+                        ? t('noBalanceToSend')
                         : ''
                   }
                   disableHoverListener={
@@ -183,7 +185,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
                         '&:hover': { background: 'rgba(255,255,255,0.25)' }
                       }}
                     >
-                      Send
+                      {t('send')}
                     </Button>
                   </span>
                 </Tooltip>
@@ -202,7 +204,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
                     }
                   }}
                 >
-                  Receive
+                  {t('receive')}
                 </Button>
               </>
             )}
