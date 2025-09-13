@@ -4,6 +4,7 @@ import {
   TextField, Button, Alert, Box, Typography, MenuItem
 } from '@mui/material';
 import { useWallet } from '../../contexts/WalletContext';
+import { REAL8 } from '../../constants/real8Asset'; // Added for issuer
 
 interface JoinPoolDialogProps {
   open: boolean;
@@ -26,17 +27,23 @@ const JoinPoolDialog: React.FC<JoinPoolDialogProps> = ({ open, onClose }) => {
       setError('Enter both amounts');
       return;
     }
+    if (assetA === assetB) {
+      setError('Assets must be different');
+      return;
+    }
     try {
-      // Placeholder: adapt to your actual pool logic.
-      // The refactored context currently logs / sets error.
-      // If you had real logic before, reinsert it there.
-      // For now we just call it with symbolic params.
-      // @ts-ignore
-      await joinLiquidityPool(assetA, assetB, amountA, amountB);
+      await joinLiquidityPool({
+        assetACode: assetA,
+        assetAIssuer: assetA === 'REAL8' ? REAL8.ISSUER : '',
+        assetBCode: assetB,
+        assetBIssuer: assetB === 'REAL8' ? REAL8.ISSUER : '',
+        maxAmountA: amountA,
+        maxAmountB: amountB
+      });
       setError('');
       onClose();
-    } catch {
-      setError('Failed to join pool');
+    } catch (e: any) {
+      setError(e.message || 'Failed to join pool');
     }
   };
 
@@ -67,7 +74,7 @@ const JoinPoolDialog: React.FC<JoinPoolDialogProps> = ({ open, onClose }) => {
           value={assetB} onChange={e => setAssetB(e.target.value)}
         >
           <MenuItem value="REAL8">REAL8</MenuItem>
-            <MenuItem value="XLM">XLM</MenuItem>
+          <MenuItem value="XLM">XLM</MenuItem>
         </TextField>
         <TextField
           fullWidth margin="dense" label={`Amount (${assetA})`}
