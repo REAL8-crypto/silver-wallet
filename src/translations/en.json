@@ -76,6 +76,11 @@
   "insufficientBalance": "Insufficient Balance",
   "trustlineRequirement": "You need at least 2 XLM to create a trustline (1 XLM for account minimum + 0.5 XLM for trustline reserve).",
   "currentBalance": "Current balance",
+  "trustlineMissing": "Trustline Missing",
+  "noBalance": "No Balance",
+  "addTrustlineToReceiveReal8": "Add the trustline to start receiving REAL8.",
+  "fundBeforeAddingTrustlines": "Fund account before adding trustlines.",
+  "noBalanceToSend": "No balance to send yet.",
   "error": {
     "fetchingBalance": "Error fetching balance",
     "creatingWallet": "Error creating wallet",

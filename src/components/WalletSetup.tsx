@@ -1,266 +1,205 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useWallet } from '../contexts/WalletContext';
-import { Box, Button, TextField, Typography, Paper, Alert, IconButton } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Stack,
+  Alert,
+  IconButton,
+  Tooltip
+} from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import real8Logo from '../assets/real8-logo.png';
 
-type SetupStep = 'welcome' | 'create' | 'import' | 'backup';
+type SetupStep = 'welcome' | 'created' | 'import';
 
 const WalletSetup: React.FC = () => {
   const { t } = useTranslation();
-  const { createWallet, importWallet, publicKey, secretKey } = useWallet();
+  const {
+    publicKey,
+    secretKey,
+    generateWallet,
+    importSecret,
+    isTestnet
+  } = useWallet();
+
   const [step, setStep] = useState<SetupStep>('welcome');
   const [importKey, setImportKey] = useState('');
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState('');
-  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCreateWallet = () => {
-    createWallet();
-    setStep('backup');
+  const handleCreate = () => {
+    setError(null);
+    generateWallet();
+    setStep('created');
   };
 
-  const handleImportWallet = () => {
+  const handleImport = () => {
+    setError(null);
+    if (!importKey.trim()) {
+      setError('Secret key required');
+      return;
+    }
     try {
-      importWallet(importKey);
-      setStep('welcome');
-    } catch (err) {
-      setError(t('error.invalidSecretKey') || 'Invalid secret key');
+      importSecret(importKey.trim());
+      setStep('created');
+      setImportKey('');
+    } catch (e: any) {
+      setError(e?.message || 'Import failed');
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const copySecret = () => {
+    if (!secretKey) return;
+    navigator.clipboard.writeText(secretKey);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 1600);
   };
 
-  const handleBack = () => {
-    setStep('welcome');
-    setError('');
-  };
+  return (
+    <Box sx={{ maxWidth: 520, mx: 'auto', p: 3 }}>
+      {isTestnet && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Testnet Environment
+        </Alert>
+      )}
 
-  if (step === 'welcome') {
-    return (
-      <Box sx={{ maxWidth: 500, mx: 'auto', mt: 8, p: { xs: 2, sm: 3 }, width: '100%' }}>
-        <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
-          {/* REAL8 Logo */}
-          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
-            <img 
-              src={real8Logo} 
-              alt="REAL8 Logo" 
-              style={{ 
-                height: 80, 
-                maxWidth: '300px',
-                objectFit: 'contain'
-              }} 
-            />
-          </Box>
-
-          <Typography variant="h4" gutterBottom>
-            {t('welcome')}
+      {step === 'welcome' && (
+        <Stack spacing={3}>
+          <Typography variant="h5" fontWeight={600}>
+            {t('welcome') || 'Welcome'}
           </Typography>
-          <Typography variant="body1" paragraph>
-            {t('createOrImportWallet')}
+            <Typography variant="body2" color="text.secondary">
+            {t('walletSetupIntro') ||
+              'Create a new Stellar wallet or import an existing secret key.'}
           </Typography>
-          
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 4 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              size="large"
-              onClick={() => setStep('create')}
-              fullWidth
-            >
-              {t('createNewWallet')}
+          <Stack direction="row" spacing={2}>
+            <Button variant="contained" onClick={handleCreate}>
+              {t('createWallet') || 'Create Wallet'}
             </Button>
-            <Button
-              variant="outlined"
-              color="primary"
-              size="large"
-              onClick={() => setStep('import')}
-              fullWidth
-            >
-              {t('importExistingWallet')}
+            <Button variant="outlined" onClick={() => setStep('import')}>
+              {t('importWallet') || 'Import Wallet'}
             </Button>
-          </Box>
-        </Paper>
-      </Box>
-    );
-  }
+          </Stack>
+        </Stack>
+      )}
 
-  if (step === 'create') {
-    return (
-      <Box sx={{ maxWidth: 500, mx: 'auto', mt: 8, p: { xs: 2, sm: 3 }, width: '100%' }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <IconButton onClick={handleBack} sx={{ mr: 1 }}>
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h5">{t('createNewWallet')}</Typography>
-          </Box>
-          
-          <Typography variant="body1" paragraph>
-            {t('createWalletDescription')}
+      {step === 'import' && (
+        <Stack spacing={2}>
+          <Typography variant="h6" fontWeight={600}>
+            {t('importWallet') || 'Import Wallet'}
           </Typography>
-          
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            onClick={handleCreateWallet}
-            fullWidth
-            sx={{ mt: 2 }}
-          >
-            {t('createWallet')}
-          </Button>
-        </Paper>
-      </Box>
-    );
-  }
-
-  if (step === 'import') {
-    return (
-      <Box sx={{ maxWidth: 500, mx: 'auto', mt: 8, p: { xs: 2, sm: 3 }, width: '100%' }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <IconButton onClick={handleBack} sx={{ mr: 1 }}>
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h5">{t('importExistingWallet')}</Typography>
-          </Box>
-          
           <TextField
-            label={t('secretKey')}
+            label={t('secretKey') || 'Secret Key'}
             value={importKey}
-            onChange={(e) => setImportKey(e.target.value)}
+            onChange={e => setImportKey(e.target.value)}
             fullWidth
-            margin="normal"
-            type="password"
-            placeholder={t('enterSecretKey') || 'Enter your secret key'}
+            size="small"
+            placeholder="SA.."
           />
-          
-          {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            onClick={handleImportWallet}
-            fullWidth
-            sx={{ mt: 2 }}
-            disabled={!importKey}
-          >
-            {t('importWallet')}
-          </Button>
-        </Paper>
-      </Box>
-    );
-  }
+          {error && <Alert severity="error">{error}</Alert>}
+          <Stack direction="row" spacing={2}>
+            <Button variant="contained" onClick={handleImport}>
+              {t('import') || 'Import'}
+            </Button>
+            <Button variant="outlined" onClick={() => setStep('welcome')}>
+              {t('back') || 'Back'}
+            </Button>
+          </Stack>
+        </Stack>
+      )}
 
-  if (step === 'backup' && secretKey) {
-    return (
-      <Box sx={{ maxWidth: 600, mx: 'auto', mt: 8, p: { xs: 2, sm: 3 }, width: '100%' }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Typography variant="h5" gutterBottom>
-            {t('walletCreated')}
+      {step === 'created' && (
+        <Stack spacing={2}>
+          <Typography variant="h6" fontWeight={600}>
+            {t('walletReady') || 'Wallet Ready'}
           </Typography>
-          
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            {t('saveSecretKey')}
-          </Alert>
-          
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-              {t('publicKey')}
+
+          <Box>
+            <Typography variant="subtitle2" gutterBottom>
+              {t('publicKey') || 'Public Key'}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                wordBreak: 'break-all',
+                fontFamily: 'monospace',
+                p: 1,
+                bgcolor: 'background.paper',
+                border: theme => `1px solid ${theme.palette.divider}`,
+                borderRadius: 1
+              }}
+            >
+              {publicKey}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography variant="subtitle2" gutterBottom color="error">
+              {t('privateKey') || 'Private Key'}
             </Typography>
             <Box
               sx={{
-                p: 2,
-                bgcolor: 'background.paper',
-                borderRadius: 1,
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
-                mb: 2,
+                gap: 1
               }}
             >
-              <Typography variant="body2" fontFamily="monospace" sx={{ wordBreak: 'break-all' }}>
-                {publicKey}
-              </Typography>
-              <IconButton
-                onClick={() => copyToClipboard(publicKey || '')}
-                size="small"
-                color={copied ? 'success' : 'default'}
+              <Typography
+                variant="caption"
+                sx={{
+                  flex: 1,
+                  wordBreak: 'break-all',
+                  fontFamily: 'monospace',
+                  p: 1,
+                  bgcolor: 'background.paper',
+                  border: theme => `1px solid ${theme.palette.divider}`,
+                  borderRadius: 1
+                }}
               >
-                {copied ? <CheckIcon /> : <ContentCopyIcon />}
-              </IconButton>
-            </Box>
-            
-            <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-              {t('secretKey')}
-            </Typography>
-            <Box
-              sx={{
-                p: 2,
-                bgcolor: 'background.paper',
-                borderRadius: 1,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <Typography variant="body2" fontFamily="monospace" sx={{ wordBreak: 'break-all' }}>
                 {secretKey}
               </Typography>
-              <IconButton
-                onClick={() => copyToClipboard(secretKey || '')}
-                size="small"
-                color={copied ? 'success' : 'default'}
+              <Tooltip
+                title={
+                  copied
+                    ? t('copied') || 'Copied'
+                    : t('copyPrivateKey') || 'Copy'
+                }
               >
-                {copied ? <CheckIcon /> : <ContentCopyIcon />}
-              </IconButton>
+                <IconButton
+                  color={copied ? 'success' : 'default'}
+                  onClick={copySecret}
+                  size="small"
+                >
+                  {copied ? <CheckIcon /> : <ContentCopyIcon />}
+                </IconButton>
+              </Tooltip>
             </Box>
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{ display: 'block', mt: 0.5 }}
+            >
+              {t('storeSecretWarning') ||
+                'Store this secret securely. Anyone with it can control the wallet.'}
+            </Typography>
           </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <input
-              type="checkbox"
-              id="savedCheckbox"
-              checked={saved}
-              onChange={(e) => setSaved(e.target.checked)}
-              style={{ marginRight: '8px' }}
-            />
-            <label htmlFor="savedCheckbox">
-              <Typography variant="body2">
-                {t('iHaveSaved')}
-              </Typography>
-            </label>
-          </Box>
-          
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            onClick={() => setStep('welcome')}
-            fullWidth
-            disabled={!saved}
-          >
-            {t('continueToWallet')}
-          </Button>
-        </Paper>
-      </Box>
-    );
-  }
 
-  return null;
+          <Button
+            variant="outlined"
+            onClick={() => setStep('welcome')}
+            size="small"
+          >
+            {t('back') || 'Back'}
+          </Button>
+        </Stack>
+      )}
+    </Box>
+  );
 };
 
 export default WalletSetup;
