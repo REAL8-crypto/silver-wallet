@@ -19,8 +19,8 @@ declare global {
 }
 
 // Export the Stellar SDK types for easier access
-declare module '@stellar/stellar-sdk' {
-  export * from 'stellar-sdk';
+declare module 'stellar-sdk' {
+  export * from '@stellar/stellar-sdk';
 }
 
 // Add type definitions for Stellar SDK
