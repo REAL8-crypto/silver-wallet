@@ -7,6 +7,7 @@ import React, {
   useRef
 } from 'react';
 import * as Stellar from '@stellar/stellar-sdk';
+import { REAL8 } from '../constants/real8Asset'; // Added for REAL8 defaults
 
 const {
   Keypair,
@@ -72,8 +73,10 @@ interface WalletContextValue {
   addTrustline: (assetCode: string, issuer: string, limit?: string) => Promise<void>;
   removeTrustline: (assetCode: string, issuer: string) => Promise<void>;
   joinLiquidityPool: (opts: {
-    assetA: any;
-    assetB: any;
+    assetACode?: string;
+    assetAIssuer?: string;
+    assetBCode?: string;
+    assetBIssuer?: string;
     maxAmountA: string;
     maxAmountB: string;
   }) => Promise<void>;
@@ -128,111 +131,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const pollingRef = useRef<number | null>(null);
 
-  /**
-   * Initialize or recreate the Server on network change.
-   */
-  useEffect(() => {
-    localStorage.setItem('NETWORK_MODE', networkMode);
-    // Resolve constructor
-    if (!serverCtorRef.current) {
-      serverCtorRef.current = getServerCtor(Stellar);
-    }
-    if (!serverCtorRef.current) {
-      if (!warnedRef.current) {
-        warnedRef.current = true;
-        console.error(
-          '[WalletContext] Unable to resolve Stellar Server constructor. Export keys:',
-          Object.keys(Stellar)
-        );
-      }
-      setError('Internal: Stellar Server constructor not found');
-      return;
-    }
-    try {
-      serverRef.current = new serverCtorRef.current(cfg.url);
-    } catch (e) {
-      console.error('[WalletContext] Failed to instantiate Server', e);
-      setError('Failed to create Horizon server instance');
-      serverRef.current = null;
-    }
-    // Refresh if key present
-    if (publicKey) {
-      void refresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [networkMode]);
-
-  const loadAccount = useCallback(
-    async (pk: string) => {
-      if (!serverRef.current) return;
-      setError(null);
-      try {
-        setLoading(true);
-        const account = await serverRef.current.loadAccount(pk);
-        setUnfunded(false);
-        const native = (account.balances as BalanceLine[]).find(
-          (b: BalanceLine) => b.asset_type === 'native'
-        );
-        setBalance(native ? native.balance : '0');
-        setBalances(account.balances as BalanceLine[]);
-        setLastUpdated(new Date());
-      } catch (e: any) {
-        if (e?.response?.status === 404) {
-          setUnfunded(true);
-          setBalance('0');
-          setBalances([]);
-        } else {
-          console.error('[WalletContext] loadAccount error', e);
-          setError(e?.message || 'Account load failed');
-        }
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  const refresh = useCallback(async () => {
-    if (!publicKey) return;
-    if (!serverRef.current) return;
-    await loadAccount(publicKey);
-  }, [publicKey, loadAccount]);
-
-  // Restore secret on mount
-  useEffect(() => {
-    const stored =
-      localStorage.getItem('WALLET_SECRET') ||
-      localStorage.getItem('stellar_secret_key');
-    if (stored) {
-      try {
-        const kp = Keypair.fromSecret(stored);
-        setSecretKey(stored);
-        setPublicKey(kp.publicKey());
-        void loadAccount(kp.publicKey());
-      } catch {
-        // ignore
-      }
-    }
-  }, [loadAccount]);
-
-  // Poll
-  useEffect(() => {
-    if (pollingRef.current) {
-      window.clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-    if (publicKey && serverRef.current) {
-      pollingRef.current = window.setInterval(() => {
-        void refresh();
-      }, 30000);
-    }
-    return () => {
-      if (pollingRef.current) {
-        window.clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [publicKey, refresh]);
+  // ... existing code (useEffect for networkMode, loadAccount, refresh, restore secret on mount, polling) ...
 
   const generateWallet = () => {
     const kp = Keypair.random();
@@ -288,40 +187,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     issuer?: string;
     memoText?: string;
   }) => {
-    if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
-    if (!serverRef.current) throw new Error('Server not initialized');
-
-    const kp = Keypair.fromSecret(secretKey);
-    const account = await serverRef.current.loadAccount(publicKey);
-    const fee = String(await serverRef.current.fetchBaseFee());
-
-    const asset =
-      !assetCode || assetCode === 'XLM'
-        ? Asset.native()
-        : new Asset(assetCode, issuer || '');
-
-    let builder = new TransactionBuilder(account, {
-      fee,
-      networkPassphrase: cfg.passphrase
-    }).addOperation(
-      Operation.payment({
-        destination,
-        asset,
-        amount
-      })
-    );
-
-    if (memoText) {
-      if (typeof (builder as any).addMemo === 'function') {
-        builder = (builder as any).addMemo(Memo.text(memoText.slice(0, 28)));
-      } else {
-        // fallback
-        // @ts-ignore
-        builder.memo = Memo.text(memoText.slice(0, 28));
-      }
-    }
-
-    await submitTx(builder, kp);
+    // ... existing code ...
   };
 
   const sendPaymentLegacy = async (
@@ -337,69 +203,77 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     issuer: string,
     limit?: string
   ) => {
-    if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
-    if (!serverRef.current) throw new Error('Server not initialized');
-    const kp = Keypair.fromSecret(secretKey);
-    const account = await serverRef.current.loadAccount(publicKey);
-    const fee = String(await serverRef.current.fetchBaseFee());
-
-    const builder = new TransactionBuilder(account, {
-      fee,
-      networkPassphrase: cfg.passphrase
-    }).addOperation(
-      Operation.changeTrust({
-        asset: new Asset(assetCode, issuer),
-        limit
-      })
-    );
-    await submitTx(builder, kp);
+    // ... existing code ...
   };
 
   const removeTrustline = async (assetCode: string, issuer: string) => {
-    if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
-    if (!serverRef.current) throw new Error('Server not initialized');
-
-    const line = balances.find(
-      b => b.asset_code === assetCode && b.asset_issuer === issuer
-    );
-    if (line && parseFloat(line.balance) !== 0) {
-      throw new Error('Trustline balance must be zero before removal');
-    }
-
-    const kp = Keypair.fromSecret(secretKey);
-    const account = await serverRef.current.loadAccount(publicKey);
-    const fee = String(await serverRef.current.fetchBaseFee());
-
-    const builder = new TransactionBuilder(account, {
-      fee,
-      networkPassphrase: cfg.passphrase
-    }).addOperation(
-      Operation.changeTrust({
-        asset: new Asset(assetCode, issuer),
-        limit: '0'
-      })
-    );
-    await submitTx(builder, kp);
+    // ... existing code ...
   };
 
   const joinLiquidityPool = async ({
-    assetA,
-    assetB,
+    assetACode = 'XLM', // Default to XLM
+    assetAIssuer = '', // Empty for native
+    assetBCode = REAL8.CODE, // From real8Asset.ts
+    assetBIssuer = REAL8.ISSUER,
     maxAmountA,
     maxAmountB
   }: {
-    assetA: any;
-    assetB: any;
+    assetACode?: string;
+    assetAIssuer?: string;
+    assetBCode?: string;
+    assetBIssuer?: string;
     maxAmountA: string;
     maxAmountB: string;
   }) => {
-    console.warn(
-      '[joinLiquidityPool] Placeholder called',
-      assetA,
-      assetB,
-      maxAmountA,
-      maxAmountB
-    );
+    if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
+    if (!serverRef.current) throw new Error('Server not initialized');
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Create Asset objects
+      const assetA = assetACode === 'XLM' ? Asset.native() : new Asset(assetACode, assetAIssuer);
+      const assetB = assetBCode === 'XLM' ? Asset.native() : new Asset(assetBCode, assetBIssuer);
+
+      // Check balances
+      await refresh(); // Ensure latest balances
+      const balA = balances.find(b => b.asset_type === 'native' || (b.asset_code === assetACode && b.asset_issuer === assetAIssuer))?.balance || '0';
+      const balB = balances.find(b => b.asset_type === 'native' || (b.asset_code === assetBCode && b.asset_issuer === assetBIssuer))?.balance || '0';
+      if (parseFloat(balA) < parseFloat(maxAmountA) || parseFloat(balB) < parseFloat(maxAmountB)) {
+        throw new Error('Insufficient balance for one or both assets');
+      }
+
+      // Check/add trustlines if needed (for non-native assets)
+      if (assetACode !== 'XLM' && !balances.some(b => b.asset_code === assetACode && b.asset_issuer === assetAIssuer)) {
+        await addTrustline(assetACode, assetAIssuer);
+      }
+      if (assetBCode !== 'XLM' && !balances.some(b => b.asset_code === assetBCode && b.asset_issuer === assetBIssuer)) {
+        await addTrustline(assetBCode, assetBIssuer);
+      }
+
+      // Build and submit transaction
+      const kp = Keypair.fromSecret(secretKey);
+      const account = await serverRef.current.loadAccount(publicKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+      const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
+        .addOperation(
+          Operation.liquidityPoolDeposit({
+            liquidityPoolId: [assetA, assetB], // SDK auto-computes ID
+            maxAmountA,
+            maxAmountB,
+            minPrice: '0.9', // Example: 10% slippage tolerance (adjust as needed)
+            maxPrice: '1.1'
+          })
+        );
+      await submitTx(builder, kp);
+    } catch (e: any) {
+      console.error('[joinLiquidityPool] Error:', e);
+      setError(e.message || 'Failed to join liquidity pool');
+      throw e; // Propagate to UI
+    } finally {
+      setLoading(false);
+    }
   };
 
   const value: WalletContextValue = {
