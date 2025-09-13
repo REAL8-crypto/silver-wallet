@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import * as Stellar from 'stellar-sdk';
-import { Asset, Keypair, Networks, Operation, TransactionBuilder } from 'stellar-sdk';
+import * as Stellar from '@stellar/stellar-sdk';
+import { Asset, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
 import { REAL8 } from '../constants/real8Asset';
 
 type NetworkMode = 'public' | 'testnet';
