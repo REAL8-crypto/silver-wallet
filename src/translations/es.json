@@ -76,6 +76,11 @@
   "insufficientBalance": "Saldo Insuficiente",
   "trustlineRequirement": "Necesitas al menos 2 XLM para crear una línea de confianza (1 XLM para el mínimo de cuenta + 0.5 XLM para la reserva de línea de confianza).",
   "currentBalance": "Saldo actual",
+  "trustlineMissing": "Falta la línea de confianza",
+  "noBalance": "Sin saldo",
+  "addTrustlineToReceiveReal8": "Añade la línea de confianza para empezar a recibir REAL8.",
+  "fundBeforeAddingTrustlines": "Financia la cuenta antes de añadir líneas de confianza.",
+  "noBalanceToSend": "Aún no hay saldo para enviar.",
   "error": {
     "fetchingBalance": "Error al obtener el saldo",
     "creatingWallet": "Error al crear la billetera",

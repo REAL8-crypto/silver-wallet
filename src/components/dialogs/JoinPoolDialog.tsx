@@ -4,6 +4,7 @@ import {
   TextField, Button, Alert, Box, Typography, MenuItem
 } from '@mui/material';
 import { useWallet } from '../../contexts/WalletContext';
+import { REAL8 } from '../../constants/real8Asset'; // Added for issuer
 
 interface JoinPoolDialogProps {
   open: boolean;
@@ -19,24 +20,43 @@ const JoinPoolDialog: React.FC<JoinPoolDialogProps> = ({ open, onClose }) => {
   const [amountB, setAmountB] = useState('');
   const [error, setError] = useState('');
 
-  const real8Balance = balances.find(b => b.asset_code === 'REAL8')?.balance || '0';
+  const real8Balance = balances.find(b => 
+    b.asset_code === REAL8.CODE && b.asset_issuer === REAL8.ISSUER
+  )?.balance || '0';
 
   const handleJoin = async () => {
     if (!amountA || !amountB) {
       setError('Enter both amounts');
       return;
     }
+    
+    // Parse and validate amountA/amountB as positive numbers
+    const numAmountA = parseFloat(amountA);
+    const numAmountB = parseFloat(amountB);
+    
+    if (isNaN(numAmountA) || isNaN(numAmountB) || numAmountA <= 0 || numAmountB <= 0) {
+      setError('Amounts must be positive numbers');
+      return;
+    }
+    
+    if (assetA === assetB) {
+      setError('Assets must be different');
+      return;
+    }
+    
     try {
-      // Placeholder: adapt to your actual pool logic.
-      // The refactored context currently logs / sets error.
-      // If you had real logic before, reinsert it there.
-      // For now we just call it with symbolic params.
-      // @ts-ignore
-      await joinLiquidityPool(assetA, assetB, amountA, amountB);
+      await joinLiquidityPool({
+        assetACode: assetA,
+        assetAIssuer: assetA === 'REAL8' ? REAL8.ISSUER : '',
+        assetBCode: assetB,
+        assetBIssuer: assetB === 'REAL8' ? REAL8.ISSUER : '',
+        maxAmountA: amountA,
+        maxAmountB: amountB
+      });
       setError('');
       onClose();
-    } catch {
-      setError('Failed to join pool');
+    } catch (e: any) {
+      setError(e.message || 'Failed to join pool');
     }
   };
 
@@ -67,7 +87,7 @@ const JoinPoolDialog: React.FC<JoinPoolDialogProps> = ({ open, onClose }) => {
           value={assetB} onChange={e => setAssetB(e.target.value)}
         >
           <MenuItem value="REAL8">REAL8</MenuItem>
-            <MenuItem value="XLM">XLM</MenuItem>
+          <MenuItem value="XLM">XLM</MenuItem>
         </TextField>
         <TextField
           fullWidth margin="dense" label={`Amount (${assetA})`}
