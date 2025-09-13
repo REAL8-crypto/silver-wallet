@@ -20,17 +20,30 @@ const JoinPoolDialog: React.FC<JoinPoolDialogProps> = ({ open, onClose }) => {
   const [amountB, setAmountB] = useState('');
   const [error, setError] = useState('');
 
-  const real8Balance = balances.find(b => b.asset_code === 'REAL8')?.balance || '0';
+  const real8Balance = balances.find(b => 
+    b.asset_code === REAL8.CODE && b.asset_issuer === REAL8.ISSUER
+  )?.balance || '0';
 
   const handleJoin = async () => {
     if (!amountA || !amountB) {
       setError('Enter both amounts');
       return;
     }
+    
+    // Parse and validate amountA/amountB as positive numbers
+    const numAmountA = parseFloat(amountA);
+    const numAmountB = parseFloat(amountB);
+    
+    if (isNaN(numAmountA) || isNaN(numAmountB) || numAmountA <= 0 || numAmountB <= 0) {
+      setError('Amounts must be positive numbers');
+      return;
+    }
+    
     if (assetA === assetB) {
       setError('Assets must be different');
       return;
     }
+    
     try {
       await joinLiquidityPool({
         assetACode: assetA,

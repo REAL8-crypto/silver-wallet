@@ -110,8 +110,10 @@ const PoolsManager: React.FC = () => {
       setLoading(true);
       // Placeholder amounts; real implementation should compute proportional contributions
       await joinLiquidityPool({
-        assetA: { code: pool.assetA.code, issuer: pool.assetA.issuer ?? undefined },
-        assetB: { code: pool.assetB.code, issuer: pool.assetB.issuer ?? undefined },
+        assetACode: pool.assetA.code,
+        assetAIssuer: pool.assetA.issuer ?? '',
+        assetBCode: pool.assetB.code,
+        assetBIssuer: pool.assetB.issuer ?? '',
         maxAmountA: '100',
         maxAmountB: '100'
       });

@@ -131,7 +131,93 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const pollingRef = useRef<number | null>(null);
 
-  // ... existing code (useEffect for networkMode, loadAccount, refresh, restore secret on mount, polling) ...
+  // Initialize server when network mode changes
+  useEffect(() => {
+    localStorage.setItem('NETWORK_MODE', networkMode);
+    const ServerCtor = getServerCtor(Stellar);
+    if (!ServerCtor) {
+      if (!warnedRef.current) {
+        console.warn('[WalletProvider] No Server constructor found');
+        warnedRef.current = true;
+      }
+      return;
+    }
+    serverCtorRef.current = ServerCtor;
+    serverRef.current = new ServerCtor(cfg.url);
+  }, [networkMode, cfg.url]);
+
+  // Load account data
+  const loadAccount = useCallback(async () => {
+    if (!publicKey || !serverRef.current) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const account = await serverRef.current.loadAccount(publicKey);
+      
+      setBalance(account.balances.find((b: any) => b.asset_type === 'native')?.balance || '0');
+      setBalances(account.balances);
+      setUnfunded(false);
+      setLastUpdated(new Date());
+    } catch (e: any) {
+      if (e?.status === 404) {
+        setUnfunded(true);
+        setBalance('0');
+        setBalances([]);
+      } else {
+        setError(e.message || 'Failed to load account');
+        console.error('[loadAccount] Error:', e);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [publicKey]);
+
+  const refresh = useCallback(async () => {
+    await loadAccount();
+  }, [loadAccount]);
+
+  // Restore secret key on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('WALLET_SECRET');
+    if (stored) {
+      try {
+        const kp = Keypair.fromSecret(stored);
+        setPublicKey(kp.publicKey());
+        setSecretKey(stored);
+      } catch {
+        localStorage.removeItem('WALLET_SECRET');
+      }
+    }
+  }, []);
+
+  // Load account when public key changes
+  useEffect(() => {
+    if (publicKey) {
+      void loadAccount();
+    }
+  }, [publicKey, loadAccount]);
+
+  // Polling for account updates
+  useEffect(() => {
+    if (publicKey && !unfunded) {
+      pollingRef.current = window.setInterval(() => {
+        void loadAccount();
+      }, 30000); // Poll every 30 seconds
+    } else {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [publicKey, unfunded, loadAccount]);
 
   const generateWallet = () => {
     const kp = Keypair.random();
@@ -187,7 +273,37 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     issuer?: string;
     memoText?: string;
   }) => {
-    // ... existing code ...
+    if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
+    if (!serverRef.current) throw new Error('Server not initialized');
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const kp = Keypair.fromSecret(secretKey);
+      const account = await serverRef.current.loadAccount(publicKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+      
+      const asset = assetCode && issuer ? new Asset(assetCode, issuer) : Asset.native();
+      const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
+        .addOperation(Operation.payment({
+          destination,
+          amount,
+          asset
+        }));
+
+      if (memoText) {
+        builder.addMemo(Memo.text(memoText));
+      }
+
+      await submitTx(builder, kp);
+    } catch (e: any) {
+      console.error('[sendPayment] Error:', e);
+      setError(e.message || 'Failed to send payment');
+      throw e;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const sendPaymentLegacy = async (
@@ -203,11 +319,61 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     issuer: string,
     limit?: string
   ) => {
-    // ... existing code ...
+    if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
+    if (!serverRef.current) throw new Error('Server not initialized');
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const kp = Keypair.fromSecret(secretKey);
+      const account = await serverRef.current.loadAccount(publicKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+      
+      const asset = new Asset(assetCode, issuer);
+      const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
+        .addOperation(Operation.changeTrust({
+          asset,
+          limit
+        }));
+
+      await submitTx(builder, kp);
+    } catch (e: any) {
+      console.error('[addTrustline] Error:', e);
+      setError(e.message || 'Failed to add trustline');
+      throw e;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const removeTrustline = async (assetCode: string, issuer: string) => {
-    // ... existing code ...
+    if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
+    if (!serverRef.current) throw new Error('Server not initialized');
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const kp = Keypair.fromSecret(secretKey);
+      const account = await serverRef.current.loadAccount(publicKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+      
+      const asset = new Asset(assetCode, issuer);
+      const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
+        .addOperation(Operation.changeTrust({
+          asset,
+          limit: '0' // Setting limit to 0 removes the trustline
+        }));
+
+      await submitTx(builder, kp);
+    } catch (e: any) {
+      console.error('[removeTrustline] Error:', e);
+      setError(e.message || 'Failed to remove trustline');
+      throw e;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const joinLiquidityPool = async ({
@@ -232,40 +398,109 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      // Create Asset objects
+      // Validate amounts are positive
+      if (parseFloat(maxAmountA) <= 0 || parseFloat(maxAmountB) <= 0) {
+        throw new Error('Amounts must be positive');
+      }
+
+      // Build Asset instances for A and B
       const assetA = assetACode === 'XLM' ? Asset.native() : new Asset(assetACode, assetAIssuer);
       const assetB = assetBCode === 'XLM' ? Asset.native() : new Asset(assetBCode, assetBIssuer);
 
-      // Check balances
-      await refresh(); // Ensure latest balances
-      const balA = balances.find(b => b.asset_type === 'native' || (b.asset_code === assetACode && b.asset_issuer === assetAIssuer))?.balance || '0';
-      const balB = balances.find(b => b.asset_type === 'native' || (b.asset_code === assetBCode && b.asset_issuer === assetBIssuer))?.balance || '0';
+      // Fetch the pool via server.liquidityPools().forAssets(A, B).call() and extract pool.id
+      const poolsResponse = await serverRef.current.liquidityPools().forAssets(assetA, assetB).call();
+      if (!poolsResponse.records || poolsResponse.records.length === 0) {
+        throw new Error('Liquidity pool not found for these assets');
+      }
+      const pool = poolsResponse.records[0];
+      const poolId = pool.id;
+
+      // Determine canonical order from pool.reserves[0].asset vs A/B and map maxAmountA/maxAmountB accordingly
+      const reserve0Asset = pool.reserves[0].asset;
+      let canonicalAssetA, canonicalAssetB, canonicalMaxAmountA, canonicalMaxAmountB;
+
+      // Check if our assetA matches reserve0
+      const assetAMatches = (reserve0Asset === 'native' && assetACode === 'XLM') ||
+                           (reserve0Asset !== 'native' && assetACode === reserve0Asset.split(':')[0] && 
+                            assetAIssuer === reserve0Asset.split(':')[1]);
+
+      if (assetAMatches) {
+        // Our A matches reserve 0, so A->A, B->B
+        canonicalAssetA = assetA;
+        canonicalAssetB = assetB;
+        canonicalMaxAmountA = maxAmountA;
+        canonicalMaxAmountB = maxAmountB;
+      } else {
+        // Our A matches reserve 1, so swap: A->B, B->A
+        canonicalAssetA = assetB;
+        canonicalAssetB = assetA;
+        canonicalMaxAmountA = maxAmountB;
+        canonicalMaxAmountB = maxAmountA;
+      }
+
+      // Load a fresh account and compute balances for A and B precisely
+      const account = await serverRef.current.loadAccount(publicKey);
+      const freshBalances: BalanceLine[] = account.balances;
+
+      const balA = freshBalances.find(b => 
+        (assetACode === 'XLM' && b.asset_type === 'native') || 
+        (assetACode !== 'XLM' && b.asset_code === assetACode && b.asset_issuer === assetAIssuer)
+      )?.balance || '0';
+      
+      const balB = freshBalances.find(b => 
+        (assetBCode === 'XLM' && b.asset_type === 'native') || 
+        (assetBCode !== 'XLM' && b.asset_code === assetBCode && b.asset_issuer === assetBIssuer)
+      )?.balance || '0';
+
+      // Validate amounts are within balances
       if (parseFloat(balA) < parseFloat(maxAmountA) || parseFloat(balB) < parseFloat(maxAmountB)) {
         throw new Error('Insufficient balance for one or both assets');
       }
 
       // Check/add trustlines if needed (for non-native assets)
-      if (assetACode !== 'XLM' && !balances.some(b => b.asset_code === assetACode && b.asset_issuer === assetAIssuer)) {
-        await addTrustline(assetACode, assetAIssuer);
+      const kp = Keypair.fromSecret(secretKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+      let builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
+      
+      if (assetACode !== 'XLM' && !freshBalances.some(b => b.asset_code === assetACode && b.asset_issuer === assetAIssuer)) {
+        builder = builder.addOperation(Operation.changeTrust({
+          asset: assetA
+        }));
       }
-      if (assetBCode !== 'XLM' && !balances.some(b => b.asset_code === assetBCode && b.asset_issuer === assetBIssuer)) {
-        await addTrustline(assetBCode, assetBIssuer);
+      if (assetBCode !== 'XLM' && !freshBalances.some(b => b.asset_code === assetBCode && b.asset_issuer === assetBIssuer)) {
+        builder = builder.addOperation(Operation.changeTrust({
+          asset: assetB
+        }));
       }
 
-      // Build and submit transaction
-      const kp = Keypair.fromSecret(secretKey);
-      const account = await serverRef.current.loadAccount(publicKey);
-      const fee = String(await serverRef.current.fetchBaseFee());
-      const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
-        .addOperation(
-          Operation.liquidityPoolDeposit({
-            liquidityPoolId: [assetA, assetB], // SDK auto-computes ID
-            maxAmountA,
-            maxAmountB,
-            minPrice: '0.9', // Example: 10% slippage tolerance (adjust as needed)
-            maxPrice: '1.1'
-          })
-        );
+      // If no trustline exists for the pool shares, add changeTrust for the pool shares
+      const hasPoolShareTrustline = freshBalances.some(b => b.liquidity_pool_id === poolId);
+      if (!hasPoolShareTrustline) {
+        // Use LiquidityPoolFeeV18 if available (default 30), or fall back to number
+        let fee_bp;
+        try {
+          fee_bp = (Stellar as any).LiquidityPoolFeeV18?.liquidityPoolFeeV18 || 30;
+        } catch {
+          fee_bp = 30;
+        }
+        
+        const poolAsset = new (Stellar as any).LiquidityPoolAsset(canonicalAssetA, canonicalAssetB, fee_bp);
+        builder = builder.addOperation(Operation.changeTrust({
+          asset: poolAsset
+        }));
+      }
+
+      // Use Operation.liquidityPoolDeposit with correct pool ID and canonical order
+      builder = builder.addOperation(
+        Operation.liquidityPoolDeposit({
+          liquidityPoolId: poolId,
+          maxAmountA: canonicalMaxAmountA,
+          maxAmountB: canonicalMaxAmountB,
+          minPrice: '0.9', // Keep placeholders as specified
+          maxPrice: '1.1'
+        })
+      );
+
       await submitTx(builder, kp);
     } catch (e: any) {
       console.error('[joinLiquidityPool] Error:', e);
