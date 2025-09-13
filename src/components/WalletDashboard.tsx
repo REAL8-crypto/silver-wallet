@@ -146,16 +146,13 @@ const WalletDashboard: React.FC = () => {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Box
               component="img"
               src={real8Logo}
               alt="REAL8 logo"
               sx={{ height: { xs: 28, md: 56 }, width: 'auto', display: 'block' }}
             />
-            <Typography variant="h6" sx={{ fontWeight: 600, opacity: 0.85 }}>
-              Wallet
-            </Typography>
           </Box>
 
           <Box sx={{ flexGrow: 1 }} />
@@ -326,7 +323,7 @@ const WalletDashboard: React.FC = () => {
           <TabPanel value="pools" sx={{ px: 0, pt: 2 }}>
             <PoolsManager />
           </TabPanel>
-          <TabPanel value="settings" sx={{ px: 0, pt: 2 }}>
+            <TabPanel value="settings" sx={{ px: 0, pt: 2 }}>
             <SettingsPanel />
           </TabPanel>
         </TabContext>

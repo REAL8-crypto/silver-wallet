@@ -27,10 +27,12 @@ const JoinLiquidityPool: React.FC = () => {
     }
     setSubmitting(true);
     try {
-      // Placeholder call. Real implementation will require constructing proper Asset instances.
+      // Use correct API interface
       await joinLiquidityPool({
-        assetA: a,
-        assetB: b,
+        assetACode: a.code,
+        assetAIssuer: a.code === 'XLM' ? '' : a.issuer,
+        assetBCode: b.code,
+        assetBIssuer: b.code === 'XLM' ? '' : b.issuer,
         maxAmountA: amountA,
         maxAmountB: amountB
       });
