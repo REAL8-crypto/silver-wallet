@@ -113,6 +113,34 @@ export function useReal8Stats(): Stats {
             totalSupply = total;
             circulating = total; // conservative fallback
           }
+        } else if (record) {
+          // If record.amount is absent but record exists, compute from component fields
+          const components = [
+            record.balances?.authorized,
+            record.balances?.unauthorized,
+            record.balances?.authorized_to_maintain_liabilities,
+            record.claimable_balances_amount,
+            record.liquidity_pools_amount,
+            record.contracts_amount
+          ];
+          
+          let computedTotal = 0;
+          let hasValidComponents = false;
+          
+          for (const component of components) {
+            if (component != null && component !== '') {
+              const value = parseFloat(component);
+              if (!Number.isNaN(value)) {
+                computedTotal += value;
+                hasValidComponents = true;
+              }
+            }
+          }
+          
+          if (hasValidComponents) {
+            totalSupply = computedTotal;
+            circulating = computedTotal; // Set circulating to totalSupply for now
+          }
         }
       }
 
