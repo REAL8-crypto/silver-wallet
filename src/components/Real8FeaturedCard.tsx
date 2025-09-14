@@ -5,6 +5,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { REAL8 } from '../constants/real8Asset';
 import { useWallet } from '../contexts/WalletContext';
+import { useReal8Stats, formatPrice, formatNumber } from '../hooks/useReal8Stats';
 
 interface Real8FeaturedCardProps {
   onSend: () => void;
@@ -25,9 +26,34 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const { balances, unfunded } = useWallet();
+  const stats = useReal8Stats();
   const trustline = balances.find(b => b.asset_code === REAL8.CODE);
   const hasTrustline = !!trustline;
   const balance = trustline?.balance || '0';
+
+  // Define the four stats for the grid
+  const statDefinitions = [
+    {
+      key: 'priceXlm',
+      label: 'PRICE (XLM)',
+      value: formatPrice(stats.priceXlm, 'XLM')
+    },
+    {
+      key: 'priceUsd',
+      label: 'PRICE (USD)',
+      value: formatPrice(stats.priceUsd, 'USD')
+    },
+    {
+      key: 'totalSupply',
+      label: 'TOTAL SUPPLY',
+      value: formatNumber(stats.totalSupply)
+    },
+    {
+      key: 'circulating',
+      label: 'CIRCULATING',
+      value: formatNumber(stats.circulating)
+    }
+  ];
 
   let statusLabel = 'Active';
   let statusColor: 'default' | 'warning' | 'success' = 'success';
@@ -69,7 +95,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
             'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent 60%)'
         }}
       />
-      <Stack direction="row" spacing={2} alignItems="flex-start">
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
         <Box sx={{ flex: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
             <Chip
@@ -181,6 +207,54 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
               </>
             )}
           </Stack>
+        </Box>
+        
+        {/* Stats grid on the right */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: { xs: 1, sm: 1.25 },
+            maxWidth: 420,
+            alignSelf: 'stretch'
+          }}
+        >
+          {statDefinitions.map((stat) => (
+            <Paper
+              key={stat.key}
+              variant="outlined"
+              elevation={0}
+              sx={{
+                borderColor: 'rgba(255,255,255,0.5)',
+                background: 'transparent',
+                p: { xs: 1, sm: 1.25 }
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  letterSpacing: 0.6,
+                  color: 'white',
+                  opacity: 0.9
+                }}
+              >
+                {stat.label}
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: 'white',
+                  lineHeight: 1.15,
+                  fontWeight: 500,
+                  wordWrap: 'break-word'
+                }}
+              >
+                {stat.value}
+              </Typography>
+            </Paper>
+          ))}
         </Box>
       </Stack>
     </Paper>
