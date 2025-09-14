@@ -4,7 +4,6 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { REAL8 } from '../constants/real8Asset';
-import real8Icon from '../assets/real8-icon.png';
 import { useWallet } from '../contexts/WalletContext';
 
 interface Real8FeaturedCardProps {
@@ -71,35 +70,8 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
         }}
       />
       <Stack direction="row" spacing={2} alignItems="flex-start">
-        <Box
-          sx={{
-            width: compact ? 52 : 64,
-            height: compact ? 52 : 64,
-            bgcolor: 'rgba(255,255,255,0.12)',
-            backdropFilter: 'blur(4px)',
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}
-        >
-          <img
-            src={real8Icon}
-            alt="REAL8"
-            width={compact ? 36 : 42}
-            height={compact ? 36 : 42}
-            style={{ objectFit: 'contain' }}
-            onError={e => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        </Box>
         <Box sx={{ flex: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-            <Typography variant={compact ? 'subtitle1' : 'h6'} sx={{ letterSpacing: 0.5 }}>
-              {REAL8.BRAND_NAME}
-            </Typography>
             <Chip
               size="small"
               label={statusLabel}
