@@ -21,7 +21,8 @@ const USDC_PUBLIC = {
 };
 
 async function fetchLastClosePrice(horizonBase: string, base: { type: 'native' | 'credit_alphanum4' | 'credit_alphanum12'; code?: string; issuer?: string }, counter: { type: 'native' | 'credit_alphanum4' | 'credit_alphanum12'; code?: string; issuer?: string }): Promise<number | null> {
-  const end = Date.now();
+  const RES = 15 * 60 * 1000; // 15 minutes in milliseconds
+  const end = Math.floor(Date.now() / RES) * RES;
   const start = end - 24 * 60 * 60 * 1000; // 24h
   const search = new URLSearchParams();
   search.set('base_asset_type', base.type);

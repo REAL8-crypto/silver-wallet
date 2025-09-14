@@ -145,7 +145,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUnfunded(false);
       setLastUpdated(new Date());
     } catch (e: any) {
-      if (e?.status === 404) {
+      if (e?.status === 404 || e?.name === 'NotFoundError') {
         setUnfunded(true);
         setBalance('0');
         setBalances([]);
