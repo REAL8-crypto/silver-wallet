@@ -43,7 +43,20 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "rules": {
+      "no-restricted-imports": [
+        "warn",
+        {
+          "paths": [
+            {
+              "name": "stellar-sdk",
+              "message": "Use '@stellar/stellar-sdk' instead."
+            }
+          ]
+        }
+      ]
+    }
   },
   "browserslist": {
     "production": [
