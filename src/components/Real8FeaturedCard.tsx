@@ -31,7 +31,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
   const hasTrustline = !!trustline;
   const balance = trustline?.balance || '0';
 
-  // Define the four stats for the grid
+  // CHANGE: "PRICE (USD)" -> "PRICE (USDC)"
   const statDefinitions = [
     {
       key: 'priceXlm',
@@ -40,7 +40,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
     },
     {
       key: 'priceUsd',
-      label: 'PRICE (USD)',
+      label: 'PRICE (USDC)',
       value: formatPrice(stats.priceUsd, 'USD')
     },
     {
@@ -89,7 +89,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
       <Box
         sx={{
           position: 'absolute',
-            inset: 0,
+          inset: 0,
           opacity: 0.08,
           background:
             'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent 60%)'
@@ -208,7 +208,6 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
             )}
           </Stack>
         </Box>
-        
         {/* Stats grid on the right */}
         <Box
           sx={{
