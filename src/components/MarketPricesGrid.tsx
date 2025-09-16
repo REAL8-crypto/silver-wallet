@@ -1,34 +1,36 @@
 import React from 'react';
-import { useReal8Pairs } from '../hooks/useReal8Pairs';
+import { Grid, Paper, Typography } from '@mui/material';
 
-const assets = [
-  { code: 'XLM', label: 'Stellar Lumens' },
-  { code: 'USDC', label: 'US Dollar Coin' },
-  { code: 'EURC', label: 'Euro Coin' },
-  { code: 'SLVR', label: 'Silver' },
-  { code: 'GOLD', label: 'Gold' },
+// Example props, adjust as needed
+interface PriceData {
+  code: string;
+  label: string;
+  value: string | number;
+}
+
+const assets: PriceData[] = [
+  { code: 'XLM', label: 'PRICE (XLM)', value: '—' },
+  { code: 'USDC', label: 'PRICE (USDC)', value: '—' },
+  { code: 'EURC', label: 'PRICE (EURC)', value: '—' },
+  { code: 'SLVR', label: 'PRICE (SLVR)', value: '—' },
+  { code: 'GOLD', label: 'PRICE (GOLD)', value: '—' },
 ];
 
-const MarketPricesGrid: React.FC = () => {
-  const { prices, lastUpdated, error } = useReal8Pairs();
-
-  return (
-    <div className="market-prices-grid">
-      <h3>REAL8 Market Prices</h3>
-      <div className="grid">
-        {assets.map(asset => (
-          <div key={asset.code} className="market-price-card">
-            <div>{asset.label}</div>
-            <div>{prices[asset.code] ?? '—'}</div>
-          </div>
-        ))}
-      </div>
-      <div className="meta">
-        <span>Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleString() : '—'}</span>
-        {error && <span className="error">{error}</span>}
-      </div>
-    </div>
-  );
-};
+const MarketPricesGrid: React.FC<{ prices?: Record<string, number | string> }> = ({ prices }) => (
+  <Grid container spacing={2} sx={{ my: 1 }}>
+    {assets.map(asset => (
+      <Grid item xs={12} sm={6} md={2.4} key={asset.code}>
+        <Paper sx={{ p: 2, textAlign: 'center', borderRadius: 3 }}>
+          <Typography variant="subtitle2" fontWeight={600}>
+            {asset.label}
+          </Typography>
+          <Typography variant="h6" sx={{ mt: 0.5 }}>
+            {prices && prices[asset.code] !== undefined ? prices[asset.code] : asset.value}
+          </Typography>
+        </Paper>
+      </Grid>
+    ))}
+  </Grid>
+);
 
 export default MarketPricesGrid;
