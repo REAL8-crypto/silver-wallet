@@ -56,7 +56,7 @@ const AssetsManager: React.FC = () => {
 
   const assetBalances = balances.filter(b => b.asset_type !== 'native');
 
-  // Popular assets that users might want to add
+  // Curated assets in order based on problem statement
   const popularAssets = [
     {
       code: 'REAL8',
@@ -66,9 +66,27 @@ const AssetsManager: React.FC = () => {
     },
     {
       code: 'USDC',
-      issuer: 'GA5ZSEJYB37JRC2FQI6WK4NDLPXUZL3AKOEDGOPYUFQHE2PDLJ4ALU8A',
+      issuer: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN', // circle.com official issuer
       name: 'USD Coin',
-      description: isSpanish ? 'Moneda estable respaldada por USD' : 'USD-backed stablecoin'
+      description: isSpanish ? 'Moneda estable respaldada por USD (Circle)' : 'USD-backed stablecoin (Circle)'
+    },
+    {
+      code: 'EURC',
+      issuer: 'GDHU6WRG4IEQXM5NZ4BMPKOXHW76MZM4Y2IEMFDVXBSDP6SJY4ITNPP2', // circle.com
+      name: 'Euro Coin',
+      description: isSpanish ? 'Moneda estable respaldada por EUR (Circle)' : 'EUR-backed stablecoin (Circle)'
+    },
+    {
+      code: 'SLVR',
+      issuer: 'GBZVELEQD3WBN3R3VAG64HVBDOZ76ZL6QPLSFGKWPFED33Q3234NSLVR', // mintx.co
+      name: 'Silver Token',
+      description: isSpanish ? 'Token respaldado por plata (MintX)' : 'Silver-backed token (MintX)'
+    },
+    {
+      code: 'GOLD',
+      issuer: 'GBC5ZGK6MQU3XG5Y72SXPA7P5R5NHYT2475SNEJB2U3EQ6J56QLVGOLD', // mintx.co
+      name: 'Gold Token',
+      description: isSpanish ? 'Token respaldado por oro (MintX)' : 'Gold-backed token (MintX)'
     }
   ];
 
@@ -157,13 +175,13 @@ const AssetsManager: React.FC = () => {
             )}
           </Paper>
 
-          {/* Popular Assets to Add */}
+          {/* Curated Assets to Add */}
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              {isSpanish ? 'Activos Populares' : 'Popular Assets'}
+              {isSpanish ? 'Activos Recomendados' : 'Recommended Assets'}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {isSpanish ? 'Agrega líneas de confianza para estos activos populares:' : 'Add trustlines for these popular assets:'}
+              {isSpanish ? 'Agrega líneas de confianza para estos activos seleccionados:' : 'Add trustlines for these curated assets:'}
             </Typography>
             
             <Stack spacing={2}>
@@ -219,7 +237,7 @@ const AssetsManager: React.FC = () => {
                         ? (isSpanish ? 'Agregado' : 'Added')
                         : isAdding 
                           ? (isSpanish ? 'Agregando...' : 'Adding...')
-                          : (isSpanish ? 'Agregar' : 'Add')
+                          : (isSpanish ? 'Conectar' : 'Connect')
                       }
                     </Button>
                   </Box>

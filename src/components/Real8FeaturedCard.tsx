@@ -40,7 +40,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
     },
     {
       key: 'priceUsd',
-      label: 'PRICE (USD)',
+      label: 'PRICE (USDC)',
       value: formatPrice(stats.priceUsd, 'USD')
     },
     {

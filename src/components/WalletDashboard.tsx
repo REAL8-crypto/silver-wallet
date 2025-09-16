@@ -33,7 +33,7 @@ import PrivateKeyWarningDialog from './dialogs/PrivateKeyWarningDialog';
 import QRCode from 'qrcode';
 // This is the REAL8 content section with the icon and trustline CTA
 import Real8Tab from './real8/Real8Tab';
-import Real8StatsGrid from './real8/Real8StatsGrid';
+import MarketPricesGrid from './MarketPricesGrid';
 import { Typography as MuiTypography } from '@mui/material';
 import real8Logo from '../assets/real8-logo.png';
 
@@ -261,8 +261,8 @@ const WalletDashboard: React.FC = () => {
             onAddTrustline={() => setOpenAddAsset(true)}
           />
 
-          {/* Single stats section using Real8StatsGrid component */}
-          <Real8StatsGrid />
+          {/* Market prices grid section replacing the duplicate stats */}
+          <MarketPricesGrid />
         </Box>
 
         {/* Icon tabs: desktop-only sizing changes and centered with wider margins */}
