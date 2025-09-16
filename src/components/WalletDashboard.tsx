@@ -38,7 +38,7 @@ import MarketPricesGrid from './MarketPricesGrid';
 import { Typography as MuiTypography } from '@mui/material';
 import real8Logo from '../assets/real8-logo.png';
 // Tab components (correct paths)
-SLVRimport WalletOverview from './tabs/WalletOverview';
+import WalletOverview from './tabs/WalletOverview';
 import AssetsManager from './tabs/AssetsManager';
 import PoolsManager from './tabs/PoolsManager';
 import SettingsPanel from './tabs/SettingsPanel';
