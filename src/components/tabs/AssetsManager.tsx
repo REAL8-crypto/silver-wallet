@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
-  Button, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
+import {
+  Box,
+  Typography,
+  Paper,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
   TableRow,
   Stack,
   Chip,
@@ -17,12 +17,51 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useWallet } from '../../contexts/WalletContext';
-import { 
-  Add as AddIcon, 
+import {
+  Add as AddIcon,
   Remove as RemoveIcon,
   CompareArrows as TransferIcon,
   TrendingUp as TrendingIcon
 } from '@mui/icons-material';
+
+const curatedAssets = [
+  {
+    code: 'REAL8',
+    issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD',
+    name: 'REAL8',
+    description: 'Token backed by silver'
+  },
+  {
+    code: 'XLM',
+    issuer: null,
+    name: 'Stellar Lumens',
+    description: 'Native Stellar asset'
+  },
+  {
+    code: 'USDC',
+    issuer: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN', // Correct Circle USDC
+    name: 'USD Coin',
+    description: 'USD-backed stablecoin'
+  },
+  {
+    code: 'EURC',
+    issuer: 'GAP5LETOV7D2P7I4B6VJ3K6QJ5W6W3VJIVBSH6D6C6X4K7R6GAV7EURC',
+    name: 'Euro Coin',
+    description: 'Euro-backed stablecoin'
+  },
+  {
+    code: 'SLVR',
+    issuer: 'GA8SLVRXXX8SLVRXXX8SLVRXXX8SLVRXXX8SLVRXXX8SLVRXXX8SLVRXXX',
+    name: 'Silver',
+    description: 'Digital Silver'
+  },
+  {
+    code: 'GOLD',
+    issuer: 'GA8GOLDXXX8GOLDXXX8GOLDXXX8GOLDXXX8GOLDXXX8GOLDXXX8GOLDXXX',
+    name: 'Gold',
+    description: 'Digital Gold'
+  }
+];
 
 const AssetsManager: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -36,7 +75,6 @@ const AssetsManager: React.FC = () => {
       await addTrustline(assetCode, issuer);
     } catch (error: any) {
       console.error('Failed to add trustline:', error);
-      // Error handling could be enhanced with toast notifications
     } finally {
       setLoading(null);
     }
@@ -48,29 +86,12 @@ const AssetsManager: React.FC = () => {
       await removeTrustline(assetCode, issuer);
     } catch (error: any) {
       console.error('Failed to remove trustline:', error);
-      // Error handling could be enhanced with toast notifications
     } finally {
       setLoading(null);
     }
   };
 
   const assetBalances = balances.filter(b => b.asset_type !== 'native');
-
-  // Popular assets that users might want to add
-  const popularAssets = [
-    {
-      code: 'REAL8',
-      issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD',
-      name: 'REAL8',
-      description: isSpanish ? 'Token respaldado por plata' : 'Silver-backed token'
-    },
-    {
-      code: 'USDC',
-      issuer: 'GA5ZSEJYB37JRC2FQI6WK4NDLPXUZL3AKOEDGOPYUFQHE2PDLJ4ALU8A',
-      name: 'USD Coin',
-      description: isSpanish ? 'Moneda estable respaldada por USD' : 'USD-backed stablecoin'
-    }
-  ];
 
   return (
     <Box>
@@ -91,7 +112,6 @@ const AssetsManager: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               {isSpanish ? 'Activos Actuales' : 'Current Assets'}
             </Typography>
-            
             {assetBalances.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
                 {isSpanish ? 'No tienes activos adicionales. Agrega líneas de confianza para recibir tokens.' : 'No additional assets found. Add trustlines to receive tokens.'}
@@ -138,8 +158,8 @@ const AssetsManager: React.FC = () => {
                               </IconButton>
                             </Tooltip>
                             <Tooltip title={isSpanish ? 'Eliminar línea de confianza' : 'Remove trustline'}>
-                              <IconButton 
-                                size="small" 
+                              <IconButton
+                                size="small"
                                 color="error"
                                 disabled={parseFloat(balance.balance) > 0 || loading === `remove-${balance.asset_code}`}
                                 onClick={() => handleRemoveTrustline(balance.asset_code!, balance.asset_issuer!)}
@@ -156,47 +176,42 @@ const AssetsManager: React.FC = () => {
               </TableContainer>
             )}
           </Paper>
-
-          {/* Popular Assets to Add */}
+          {/* Curated Assets */}
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              {isSpanish ? 'Activos Populares' : 'Popular Assets'}
+              {isSpanish ? 'Lista Curada de Activos' : 'Curated Asset List'}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {isSpanish ? 'Agrega líneas de confianza para estos activos populares:' : 'Add trustlines for these popular assets:'}
-            </Typography>
-            
             <Stack spacing={2}>
-              {popularAssets.map((asset) => {
+              {curatedAssets.map(asset => {
                 const hasAsset = assetBalances.some(b => b.asset_code === asset.code && b.asset_issuer === asset.issuer);
                 const isAdding = loading === `add-${asset.code}`;
-                
                 return (
-                  <Box key={asset.code} sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    p: 2,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    bgcolor: hasAsset ? 'success.50' : 'transparent'
-                  }}>
+                  <Box key={asset.code}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      p: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      bgcolor: hasAsset ? 'success.50' : 'transparent'
+                    }}>
                     <Box sx={{ flex: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                         <Typography variant="body1" fontWeight={500}>
                           {asset.name}
                         </Typography>
-                        <Chip 
-                          label={asset.code} 
-                          size="small" 
+                        <Chip
+                          label={asset.code}
+                          size="small"
                           variant="outlined"
                           icon={<TrendingIcon />}
                         />
                         {hasAsset && (
-                          <Chip 
-                            label={isSpanish ? 'Agregado' : 'Added'} 
-                            size="small" 
+                          <Chip
+                            label={isSpanish ? 'Agregado' : 'Added'}
+                            size="small"
                             color="success"
                           />
                         )}
@@ -205,19 +220,19 @@ const AssetsManager: React.FC = () => {
                         {asset.description}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {asset.issuer.slice(0, 12)}...
+                        {asset.issuer?.slice(0, 12)}...
                       </Typography>
                     </Box>
                     <Button
                       variant={hasAsset ? "outlined" : "contained"}
                       size="small"
                       disabled={hasAsset || isAdding}
-                      onClick={() => handleAddTrustline(asset.code, asset.issuer)}
+                      onClick={() => handleAddTrustline(asset.code, asset.issuer!)}
                       startIcon={<AddIcon />}
                     >
-                      {hasAsset 
+                      {hasAsset
                         ? (isSpanish ? 'Agregado' : 'Added')
-                        : isAdding 
+                        : isAdding
                           ? (isSpanish ? 'Agregando...' : 'Adding...')
                           : (isSpanish ? 'Agregar' : 'Add')
                       }
@@ -226,8 +241,13 @@ const AssetsManager: React.FC = () => {
                 );
               })}
             </Stack>
+            {/* SWAP BUTTON */}
+            <Box sx={{ textAlign: 'center', mt: 3 }}>
+              <Button className="primary" variant="contained" color="primary">
+                {isSpanish ? 'Intercambiar' : 'Swap'}
+              </Button>
+            </Box>
           </Paper>
-
           {/* Custom Asset Addition */}
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
