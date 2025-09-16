@@ -15,9 +15,10 @@ const REAL8 = {
   code: 'REAL8',
   issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD'
 };
+// CHANGE: USDC issuer to Circle's official
 const USDC_PUBLIC = {
   code: 'USDC',
-  issuer: 'GA5ZSEJYB37JRC2FQI6WK4NDLPXUZL3AKOEDGOPYUFQHE2PDLJ4ALU8A'
+  issuer: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN'
 };
 
 async function fetchLastClosePrice(horizonBase: string, base: { type: 'native' | 'credit_alphanum4' | 'credit_alphanum12'; code?: string; issuer?: string }, counter: { type: 'native' | 'credit_alphanum4' | 'credit_alphanum12'; code?: string; issuer?: string }): Promise<number | null> {
@@ -61,13 +62,10 @@ async function fetchLastClosePrice(horizonBase: string, base: { type: 'native' |
 // Formatting helpers
 export function formatPrice(value: number | null, currency?: 'XLM' | 'USD'): string {
   if (value == null || Number.isNaN(value)) return '—';
-  
   if (currency === 'USD') {
     if (value < 0.01) return '$' + value.toFixed(6);
     return '$' + value.toFixed(4);
   }
-  
-  // XLM or generic numbers
   if (value < 0.0001) return value.toFixed(8);
   return value.toFixed(6);
 }
@@ -100,7 +98,7 @@ export function useReal8Stats(): Stats {
 
   const poll = useCallback(async () => {
     try {
-      // Supply via /assets (works on both networks)
+      // Supply via /assets
       let totalSupply: number | null = null;
       let circulating: number | null = null;
       const aRes = await fetch(assetUrl, { cache: 'no-store', mode: 'cors' });
@@ -111,7 +109,7 @@ export function useReal8Stats(): Stats {
           const total = parseFloat(record.amount);
           if (!Number.isNaN(total)) {
             totalSupply = total;
-            circulating = total; // conservative fallback
+            circulating = total;
           }
         }
       }
@@ -148,7 +146,7 @@ export function useReal8Stats(): Stats {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [poll]); // now includes poll as dependency
+  }, [poll]);
 
   return state;
 }
