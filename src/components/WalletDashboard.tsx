@@ -1,4 +1,3 @@
-// ... imports and context setup preserved ...
 import React, { useState } from 'react';
 import {
   Box,
@@ -34,13 +33,55 @@ import PrivateKeyWarningDialog from './dialogs/PrivateKeyWarningDialog';
 import QRCode from 'qrcode';
 import Real8FeaturedCard from './Real8FeaturedCard';
 import MarketPricesGrid from './MarketPricesGrid';
+import WalletOverview from './WalletOverview';
+import AssetsManager from './tabs/AssetsManager';
+import PoolsManager from './PoolsManager';
+import SettingsPanel from './SettingsPanel';
 // ... any other imports, context, and state setup preserved ...
 
-// ... all dashboard state and logic preserved ...
-
 const WalletDashboard: React.FC = () => {
-  // ... state and context hooks preserved ...
-  // ... all event handlers, logic, and dialogs preserved ...
+  // ... dashboard state and logic preserved ...
+  const [tabValue, setTabValue] = useState('wallet');
+  const [openSend, setOpenSend] = useState(false);
+  const [openReceive, setOpenReceive] = useState(false);
+  const [openAddAsset, setOpenAddAsset] = useState(false);
+  const [openJoinPool, setOpenJoinPool] = useState(false);
+  const [openPkWarning, setOpenPkWarning] = useState(false);
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [qrGenerating, setQrGenerating] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState(false);
+
+  const { t, i18n } = useTranslation();
+  const { publicKey, secretKey } = useWallet();
+  const isSpanish = i18n.language.startsWith('es');
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: string) => setTabValue(newValue);
+
+  // Example QR logic, you may already have this in your implementation
+  const handleCopyAddress = () => {
+    if (publicKey) {
+      navigator.clipboard.writeText(publicKey);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 1200);
+    }
+  };
+  const generateQr = () => {
+    if (publicKey) {
+      setQrGenerating(true);
+      QRCode.toDataURL(publicKey)
+        .then(url => setQrCodeUrl(url))
+        .finally(() => setQrGenerating(false));
+    }
+  };
+  const handleCopySecret = () => {
+    if (secretKey) {
+      navigator.clipboard.writeText(secretKey);
+      setCopiedSecret(true);
+      setTimeout(() => setCopiedSecret(false), 1200);
+    }
+  };
 
   return (
     <Box>
