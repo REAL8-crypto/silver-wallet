@@ -39,7 +39,7 @@ import { Typography as MuiTypography } from '@mui/material';
 import real8Logo from '../assets/real8-logo.png';
 
 // Tab components (correct paths)
-import WalletOverview from './tabs/WalletOverview';
+SLVRimport WalletOverview from './tabs/WalletOverview';
 import AssetsManager from './tabs/AssetsManager';
 import PoolsManager from './tabs/PoolsManager';
 import SettingsPanel from './tabs/SettingsPanel';
@@ -267,6 +267,13 @@ const WalletDashboard: React.FC = () => {
           {/* 5-card market prices grid for REAL8 vs XLM, USDC, EURC, SLVR, GOLD */}
           <MarketPricesGrid />
         </Box>
+
+        {/* 
+          REMOVE: 
+            - the old four-card price grid (if present)
+            - the price list for XLM, USDC, EURC, SLVR, GOLD under the grid
+          These are now handled by MarketPricesGrid.
+        */}
 
         {/* Icon tabs: desktop sizing, centered, correct */}
         <TabContext value={tabValue}>
