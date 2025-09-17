@@ -33,7 +33,7 @@ import PrivateKeyWarningDialog from './dialogs/PrivateKeyWarningDialog';
 import QRCode from 'qrcode';
 // This is the REAL8 content section with the icon and trustline CTA
 import Real8Tab from './real8/Real8Tab';
-import Real8StatsGrid from './real8/Real8StatsGrid';
+// Removed Real8StatsGrid import as it's the duplicate
 import MarketPricesGrid from './MarketPricesGrid';
 import { Typography as MuiTypography } from '@mui/material';
 import real8Logo from '../assets/real8-logo.png';
@@ -242,7 +242,7 @@ const WalletDashboard: React.FC = () => {
           </Box>
         )}
 
-        {/* REAL8 card area: relabel stats */}
+        {/* REAL8 card area */}
         <Box
           sx={{
             border: '1px solid',
@@ -260,19 +260,11 @@ const WalletDashboard: React.FC = () => {
             onAddTrustline={() => setOpenAddAsset(true)}
           />
 
-          {/* Relabeled stats grid for REAL8 */}
-          <Real8StatsGrid />
+          {/* Removed Real8StatsGrid - this was the duplicate */}
 
-          {/* 5-card market prices grid for REAL8 vs XLM, USDC, EURC, SLVR, GOLD */}
+          {/* 5-column market prices grid for REAL8 vs XLM, USDC, EURC, SLVR, GOLD */}
           <MarketPricesGrid />
         </Box>
-
-        {/* 
-          REMOVE: 
-            - the old four-card price grid (if present)
-            - the price list for XLM, USDC, EURC, SLVR, GOLD under the grid
-          These are now handled by MarketPricesGrid.
-        */}
 
         {/* Icon tabs: desktop sizing, centered, correct */}
         <TabContext value={tabValue}>
