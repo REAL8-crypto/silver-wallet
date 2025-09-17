@@ -23,7 +23,7 @@ interface SendDialogProps {
 const SendDialog: React.FC<SendDialogProps> = ({ open, onClose }) => {
   const { sendPayment, balances, loading } = useWallet();
   const [assetCode, setAssetCode] = useState<string>('REAL8');
-  const [issuer, setIssuer] = useState<string>(REAL8.issuer || REAL8.ISSUER || ''); // Handle both cases
+  const [issuer, setIssuer] = useState<string>(REAL8.ISSUER);
   const [destination, setDestination] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [memoText, setMemoText] = useState<string>('');
@@ -42,7 +42,7 @@ const SendDialog: React.FC<SendDialogProps> = ({ open, onClose }) => {
   // Keep issuer in sync when assetCode changes to a known issuer (helpful UX)
   useEffect(() => {
     if (assetCode === 'REAL8') {
-      setIssuer(REAL8.issuer || REAL8.ISSUER || '');
+      setIssuer(REAL8.ISSUER);
       return;
     }
     const found = issuedAssets.find(a => a.code === assetCode);
@@ -54,7 +54,7 @@ const SendDialog: React.FC<SendDialogProps> = ({ open, onClose }) => {
   useEffect(() => {
     if (open) {
       setAssetCode('REAL8');
-      setIssuer(REAL8.issuer || REAL8.ISSUER || '');
+      setIssuer(REAL8.ISSUER);
       setDestination('');
       setAmount('');
       setMemoText('');
@@ -139,10 +139,10 @@ const SendDialog: React.FC<SendDialogProps> = ({ open, onClose }) => {
             helperText={`Available: ${getSelectedAssetBalance()}`}
           >
             <MenuItem value="XLM">XLM</MenuItem>
-            <MenuItem value={REAL8.code || REAL8.CODE}>{REAL8.code || REAL8.CODE}</MenuItem>
+            <MenuItem value={REAL8.CODE}>{REAL8.CODE}</MenuItem>
             {issuedAssets.map(a => (
               // Don't duplicate REAL8 if present
-              a.code !== (REAL8.code || REAL8.CODE) && (
+              a.code !== REAL8.CODE && (
                 <MenuItem key={`${a.code}:${a.issuer}`} value={a.code}>
                   {a.code}
                 </MenuItem>
