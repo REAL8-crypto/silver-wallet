@@ -14,7 +14,7 @@ const assets = [
 const MarketPricesGrid: React.FC<{ prices?: Record<string, number | string> }> = ({ prices }) => (
   <Grid container spacing={2} sx={{ my: 1 }}>
     {assets.map(asset => (
-      <Grid size={{ xs: 12, sm: 6, md: 3 }} key={asset.code}>
+      <Grid size={{ xs: 12, sm: 6, md: 2.4 }} key={asset.code}>
         <Paper sx={{ p: 2, textAlign: 'center', borderRadius: 3 }}>
           <Typography variant="subtitle2" fontWeight={600}>
             {asset.label}
