@@ -283,7 +283,32 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
     if (!serverRef.current) throw new Error('Server not initialized');
 
+    // Native XLM doesn't require a trustline
+    if (assetCode === 'XLM') {
+      throw new Error('XLM is native and does not require a trustline');
+    }
+
     try {
+      setLoading(true);
+      setError(null);
+
+      const kp = Keypair.fromSecret(secretKey);
+      const account = await serverRef.current.loadAccount(publicKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+
+      const asset = new Asset(assetCode, issuer);
+      const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
+        .addOperation(Operation.changeTrust({
+          asset,
+          // if limit is a non-empty string, pass it, otherwise undefined so SDK uses default (max)
+          limit: limit && limit.length ? limit : undefined
+        }));
+
+      await submitTx(builder, kp);
+    } catch (e: any) {
+      console.error('[addTrustline] Error:', e);
+      setError(e?.message || 'Failed to add trustline');
+      throw e;
     } finally {
       setLoading(false);
     }
