@@ -29,10 +29,11 @@ import {
   Backup as BackupIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
+import PrivateKeyWarningDialog from '../dialogs/PrivateKeyWarningDialog';
 
 const SettingsPanel: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { publicKey, networkMode, setNetworkMode, disconnect } = useWallet();
+  const { publicKey, secretKey, networkMode, setNetworkMode, disconnect } = useWallet();
   const isSpanish = i18n.language.startsWith('es');
   
   // Local settings state (in real app these might be stored in localStorage/context)
@@ -41,6 +42,18 @@ const SettingsPanel: React.FC = () => {
   const [showBalanceOnStartup, setShowBalanceOnStartup] = useState(true);
   const [confirmTransactions, setConfirmTransactions] = useState(true);
   const [backupReminder, setBackupReminder] = useState(true);
+
+  // Private key viewing state
+  const [openPkWarning, setOpenPkWarning] = useState(false);
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState(false);
+
+  // simple gating: only enable export if a secret is available locally
+  const hasSecret = Boolean(
+    secretKey ||
+    localStorage.getItem('WALLET_SECRET') ||
+    localStorage.getItem('stellar_secret_key')
+  );
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
@@ -69,6 +82,17 @@ const SettingsPanel: React.FC = () => {
     a.download = 'wallet-settings.json';
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleCopySecret = () => {
+    const localSecret =
+      secretKey ||
+      localStorage.getItem('WALLET_SECRET') ||
+      localStorage.getItem('stellar_secret_key');
+    if (!localSecret) return;
+    navigator.clipboard.writeText(localSecret);
+    setCopiedSecret(true);
+    setTimeout(() => setCopiedSecret(false), 1800);
   };
 
   return (
@@ -194,13 +218,27 @@ const SettingsPanel: React.FC = () => {
                 {isSpanish ? 'Gestión de Billetera' : 'Wallet Management'}
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                <Button variant="outlined" size="small" startIcon={<BackupIcon />}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<BackupIcon />}
+                  onClick={() => setOpenPkWarning(true)}
+                  disabled={!hasSecret}
+                >
                   {isSpanish ? 'Exportar Clave Privada' : 'Export Private Key'}
                 </Button>
                 <Button variant="outlined" size="small" color="error" onClick={disconnect}>
                   {isSpanish ? 'Desconectar Billetera' : 'Disconnect Wallet'}
                 </Button>
               </Stack>
+              {!hasSecret && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {isSpanish
+                    ? 'Clave privada no disponible (billetera sólo-lectura o respaldada externamente).'
+                    : 'Private key not available (watch-only or externally backed wallet).'
+                  }
+                </Typography>
+              )}
             </Box>
           </Stack>
         </Paper>
@@ -338,6 +376,22 @@ const SettingsPanel: React.FC = () => {
           </Alert>
         </Paper>
       </Stack>
+
+      {/* Private key warning dialog */}
+      <PrivateKeyWarningDialog
+        open={openPkWarning}
+        onClose={() => setOpenPkWarning(false)}
+        secretKey={
+          secretKey ||
+          localStorage.getItem('WALLET_SECRET') ||
+          localStorage.getItem('stellar_secret_key') ||
+          ''
+        }
+        showPrivateKey={showPrivateKey}
+        setShowPrivateKey={setShowPrivateKey}
+        onCopySecret={handleCopySecret}
+        copiedSecret={copiedSecret}
+      />
     </Box>
   );
 };
