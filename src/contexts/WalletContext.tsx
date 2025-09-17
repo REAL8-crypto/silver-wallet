@@ -261,7 +261,39 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
     if (!serverRef.current) throw new Error('Server not initialized');
 
+    setLoading(true);
+    setError(null);
+
     try {
+      // Basic validation
+      if (!destination || !destination.trim()) throw new Error('Destination required');
+      if (!amount || Number.isNaN(Number(amount)) || parseFloat(amount) <= 0) throw new Error('Amount must be > 0');
+      if (assetCode && assetCode !== 'XLM' && (!issuer || !issuer.trim())) throw new Error('Issuer required for non-native assets');
+
+      const kp = Keypair.fromSecret(secretKey);
+      const account = await serverRef.current.loadAccount(publicKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+
+      // Build asset: native XLM vs custom asset
+      const asset = (!assetCode || assetCode === 'XLM') ? Asset.native() : new Asset(assetCode, issuer!);
+
+      const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
+        .addOperation(Operation.payment({
+          destination: destination.trim(),
+          asset,
+          amount: String(amount)
+        }));
+
+      if (memoText && memoText.trim().length) {
+        // Attach memo as text (max 28 chars) — callers should cap length if needed
+        builder.addMemo(Stellar.Memo.text(memoText.trim()));
+      }
+
+      await submitTx(builder, kp);
+    } catch (e: any) {
+      console.error('[sendPayment] Error:', e);
+      setError(e?.message || 'Failed to send payment');
+      throw e;
     } finally {
       setLoading(false);
     }
