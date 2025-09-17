@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -50,6 +50,13 @@ const ReceiveDialog: React.FC<ReceiveDialogProps> = ({
   const handleGenerate = generateQr || (() => {});
   const isGenerating = qrGenerating ?? generating ?? false;
 
+  // Auto-generate QR code when dialog opens if we don't have one
+  useEffect(() => {
+    if (open && !qrCodeUrl && !isGenerating && publicKey && handleGenerate) {
+      handleGenerate();
+    }
+  }, [open, qrCodeUrl, isGenerating, publicKey, handleGenerate]);
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogTitle>Receive</DialogTitle>
@@ -57,13 +64,13 @@ const ReceiveDialog: React.FC<ReceiveDialogProps> = ({
         <Typography variant="body2" paragraph>
           Share this address to receive assets:
         </Typography>
-
         <Box
           sx={{
             p: 2,
             bgcolor: 'background.paper',
             borderRadius: 1,
-            textAlign: 'center'
+            textAlign: 'center',
+            border: theme => `1px solid ${theme.palette.divider}`
           }}
         >
           <Typography
@@ -72,7 +79,8 @@ const ReceiveDialog: React.FC<ReceiveDialogProps> = ({
               fontFamily: 'monospace',
               wordBreak: 'break-all',
               display: 'block',
-              mb: 1
+              mb: 1,
+              fontSize: '0.75rem'
             }}
           >
             {publicKey}
@@ -82,7 +90,7 @@ const ReceiveDialog: React.FC<ReceiveDialogProps> = ({
             spacing={1}
             justifyContent="center"
             flexWrap="wrap"
-            sx={{ mt: 0.5 }}
+            sx={{ mt: 1 }}
           >
             <Button
               size="small"
@@ -90,6 +98,7 @@ const ReceiveDialog: React.FC<ReceiveDialogProps> = ({
               startIcon={isCopied ? <CheckIcon /> : <ContentCopyIcon />}
               onClick={handleCopy}
               disabled={isCopied}
+              color={isCopied ? 'success' : 'primary'}
             >
               {isCopied ? 'Copied' : 'Copy'}
             </Button>
@@ -105,18 +114,16 @@ const ReceiveDialog: React.FC<ReceiveDialogProps> = ({
           </Stack>
         </Box>
 
-        <Typography
-          variant="body2"
-          sx={{ mt: 2, textAlign: 'center' }}
-        >
-          Scan QR Code
-        </Typography>
-
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+        {/* QR Code Section */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Scan QR Code
+          </Typography>
+          
           {!isGenerating && qrCodeUrl ? (
             <img
               src={qrCodeUrl}
-              alt="QR Code"
+              alt="QR Code for wallet address"
               style={{
                 width: 200,
                 height: 200,
@@ -129,16 +136,16 @@ const ReceiveDialog: React.FC<ReceiveDialogProps> = ({
               sx={{
                 width: 200,
                 height: 200,
-                bgcolor: '#f5f5f5',
+                bgcolor: 'grey.100',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: 1,
-                border: '1px solid #e0e0e0'
+                border: theme => `1px solid ${theme.palette.divider}`
               }}
             >
-              <Typography color="textSecondary" variant="caption">
-                {isGenerating ? 'Generating...' : 'No QR'}
+              <Typography color="text.secondary" variant="caption">
+                {isGenerating ? 'Generating...' : 'Click Generate QR'}
               </Typography>
             </Box>
           )}
