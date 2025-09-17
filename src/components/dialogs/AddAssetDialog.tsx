@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Alert, Button, Typography
 } from '@mui/material';
 import { useWallet } from '../../contexts/WalletContext';
+import { REAL8 } from '../../constants/real8Asset';
 
 interface AddAssetDialogProps {
   open: boolean;
@@ -16,10 +17,20 @@ const AddAssetDialog: React.FC<AddAssetDialogProps> = ({
   open, onClose, defaultIssuer, defaultAssetCode
 }) => {
   const { addTrustline, balance: nativeBalanceStr, unfunded } = useWallet();
-  const [assetCode, setAssetCode] = useState(defaultAssetCode || 'REAL8');
-  const [issuer, setIssuer] = useState(defaultIssuer || '');
+  // default asset code should remain REAL8, issuer defaults to official REAL8 issuer
+  const [assetCode, setAssetCode] = useState(defaultAssetCode || REAL8.CODE);
+  const [issuer, setIssuer] = useState(defaultIssuer || REAL8.ISSUER);
   const [error, setError] = useState('');
   const nativeBalance = parseFloat(nativeBalanceStr || '0');
+
+  // Ensure dialog fields are reset to defaults each time the dialog is opened
+  useEffect(() => {
+    if (open) {
+      setAssetCode(defaultAssetCode || REAL8.CODE);
+      setIssuer(defaultIssuer || REAL8.ISSUER);
+      setError('');
+    }
+  }, [open, defaultAssetCode, defaultIssuer]);
 
   const handleAdd = async () => {
     if (!assetCode || !issuer) {
@@ -30,6 +41,7 @@ const AddAssetDialog: React.FC<AddAssetDialogProps> = ({
       setError('Need at least 2 XLM for a new trustline');
       return;
     }
+
     try {
       await addTrustline(assetCode, issuer);
       setError('');
@@ -41,7 +53,7 @@ const AddAssetDialog: React.FC<AddAssetDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle>Add Trustline</DialogTitle>
+      <DialogTitle>{unfunded ? 'Add Trustline' : 'Add Trustline'}</DialogTitle>
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {nativeBalance < 2 && (
@@ -57,24 +69,26 @@ const AddAssetDialog: React.FC<AddAssetDialogProps> = ({
           </Alert>
         )}
         <TextField
-          fullWidth label="Asset Code" margin="dense"
-          value={assetCode} onChange={e => setAssetCode(e.target.value)}
+          fullWidth
+          label="Asset Code"
+          margin="dense"
+          value={assetCode}
+          onChange={e => setAssetCode(e.target.value)}
         />
         <TextField
-          fullWidth label="Issuer" margin="dense"
-          value={issuer} onChange={e => setIssuer(e.target.value)}
-          placeholder="Issuer public key"
+          fullWidth
+          label="Issuer"
+          margin="dense"
+          value={issuer}
+          onChange={e => setIssuer(e.target.value)}
+          placeholder="G...ISSUER"
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          onClick={handleAdd}
-          variant="contained"
-          disabled={nativeBalance < 2 || unfunded}
-        >
-          Add
+        <Button onClick={onClose}>
+          Cancel
         </Button>
+        <Button onClick={handleAdd} variant="contained">Add</Button>
       </DialogActions>
     </Dialog>
   );
