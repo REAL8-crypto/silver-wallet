@@ -1,187 +1,173 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  Stack,
   Button,
-  MenuItem,
   Alert,
-  CircularProgress,
-  Typography
+  Stack,
+  MenuItem,
+  Typography,
+  CircularProgress
 } from '@mui/material';
 import { useWallet } from '../../contexts/WalletContext';
+import { REAL8 } from '../../constants/real8Asset';
 
 interface SendDialogProps {
   open: boolean;
   onClose: () => void;
-  defaultIssuer?: string;
-  presetAssetCode?: string;
 }
 
-const SendDialog: React.FC<SendDialogProps> = ({
-  open,
-  onClose,
-  defaultIssuer,
-  presetAssetCode
-}) => {
-  const { balances, sendPayment, loading } = useWallet();
+const SendDialog: React.FC<SendDialogProps> = ({ open, onClose }) => {
+  const { sendPayment, balances } = useWallet();
 
-  const [destination, setDestination] = useState('');
-  const [amount, setAmount] = useState('');
-  const [assetCode, setAssetCode] = useState(presetAssetCode || 'XLM');
-  const [issuer, setIssuer] = useState(defaultIssuer || '');
-  const [memoText, setMemoText] = useState('');
+  const [assetCode, setAssetCode] = useState<string>('REAL8');
+  const [issuer, setIssuer] = useState<string>(REAL8.ISSUER);
+  const [destination, setDestination] = useState<string>('');
+  const [amount, setAmount] = useState<string>('');
+  const [memoText, setMemoText] = useState<string>('');
+
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
-  // Reset when dialog opens
+  // Available non-native assets from account (to help choose issuer)
+  const issuedAssets = useMemo(() => {
+    const lines = balances.filter(b => b.asset_type !== 'native');
+    return lines.map(l => ({
+      code: l.asset_code || '',
+      issuer: l.asset_issuer || ''
+    }));
+  }, [balances]);
+
+  // Keep issuer in sync when assetCode changes to a known issuer (helpful UX)
+  useEffect(() => {
+    if (assetCode === 'REAL8') {
+      setIssuer(REAL8.ISSUER);
+      return;
+    }
+    const found = issuedAssets.find(a => a.code === assetCode);
+    if (found) setIssuer(found.issuer);
+    else if (assetCode === 'XLM') setIssuer('');
+  }, [assetCode, issuedAssets]);
+
+  // Reset on open
   useEffect(() => {
     if (open) {
-      setError(null);
-      setSuccess(false);
-      if (presetAssetCode) setAssetCode(presetAssetCode);
-      if (defaultIssuer) setIssuer(defaultIssuer);
-    }
-  }, [open, presetAssetCode, defaultIssuer]);
-
-  const issuedAssets = balances.filter(
-    b => b.asset_type !== 'native' && b.asset_code
-  );
-
-  const handleSubmit = async () => {
-    setError(null);
-    setSuccess(false);
-    if (!destination.trim() || !amount.trim()) {
-      setError('Destination and amount required.');
-      return;
-    }
-    if (assetCode !== 'XLM' && !issuer) {
-      setError('Issuer required for non-native asset.');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await sendPayment({
-        destination: destination.trim(),
-        amount: amount.trim(),
-        assetCode: assetCode,
-        issuer: assetCode === 'XLM' ? undefined : issuer.trim() || undefined,
-        memoText: memoText.trim() || undefined
-      });
-      setSuccess(true);
+      setAssetCode('REAL8');
+      setIssuer(REAL8.ISSUER);
       setDestination('');
       setAmount('');
       setMemoText('');
-      if (assetCode !== 'XLM' && !presetAssetCode) {
-        setIssuer('');
+      setError('');
+      setSubmitting(false);
+    }
+  }, [open]);
+
+  const handleSubmit = async () => {
+    setError('');
+    setSubmitting(true);
+    console.log('send submit', { assetCode, issuer, destination, amount, memoText });
+    try {
+      // Basic client-side validation
+      if (!destination || !destination.trim()) {
+        setError('Destination required');
+        return;
       }
-      // You can auto-close: setTimeout(onClose, 900);
+      if (!amount || Number.isNaN(Number(amount)) || parseFloat(amount) <= 0) {
+        setError('Enter a valid amount > 0');
+        return;
+      }
+      if (assetCode !== 'XLM' && (!issuer || !issuer.trim())) {
+        setError('Issuer required for token transfers');
+        return;
+      }
+
+      await sendPayment({
+        destination: destination.trim(),
+        amount: amount.trim(),
+        assetCode,
+        issuer: assetCode === 'XLM' ? undefined : issuer,
+        memoText: memoText.trim()
+      });
+      onClose();
     } catch (e: any) {
-      setError(e?.message || 'Transaction failed');
+      console.error('[SendDialog] sendPayment failed', e);
+      setError(e?.message || 'Send failed');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const disableSubmit =
-    submitting ||
-    loading ||
-    !destination ||
-    !amount ||
-    parseFloat(amount) <= 0 ||
-    (assetCode !== 'XLM' && !issuer);
-
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Send Payment</DialogTitle>
-      <DialogContent dividers>
-        <Stack spacing={2}>
+    <Dialog open={open} onClose={() => { if (!submitting) onClose(); }} fullWidth maxWidth="xs">
+      <DialogTitle>Send</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ mt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
-          {success && (
-            <Alert severity="success" onClose={() => setSuccess(false)}>
-              Sent successfully
-            </Alert>
-          )}
 
           <TextField
-            label="Destination (Public Key)"
+            fullWidth
+            label="Destination"
             value={destination}
             onChange={e => setDestination(e.target.value)}
-            fullWidth
+            placeholder="G... or federation ID"
             size="small"
-            placeholder="G..."
           />
 
-          <Stack direction="row" spacing={1}>
-            <TextField
-              label="Amount"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              size="small"
-              fullWidth
-              placeholder="0.0"
-              type="number"
-              inputProps={{ min: 0, step: 'any' }}
-            />
-            <TextField
-              select
-              label="Asset"
-              value={assetCode}
-              onChange={e => {
-                setAssetCode(e.target.value);
-                if (e.target.value === 'XLM') setIssuer('');
-              }}
-              size="small"
-              sx={{ minWidth: 110 }}
-            >
-              <MenuItem value="XLM">XLM</MenuItem>
-              {issuedAssets.map(line => (
-                <MenuItem
-                  key={`${line.asset_code}-${line.asset_issuer}`}
-                  value={line.asset_code}
-                >
-                  {line.asset_code}
-                </MenuItem>
-              ))}
-              {!issuedAssets.length && (
-                <MenuItem value="" disabled>
-                  No assets
-                </MenuItem>
-              )}
-            </TextField>
-          </Stack>
+          <TextField
+            select
+            fullWidth
+            label="Asset"
+            value={assetCode}
+            onChange={e => setAssetCode(e.target.value)}
+            size="small"
+          >
+            <MenuItem value="XLM">XLM</MenuItem>
+            <MenuItem value={REAL8.CODE}>{REAL8.CODE}</MenuItem>
+            {issuedAssets.map(a => (
+              // don't duplicate REAL8 if present
+              a.code !== REAL8.CODE && <MenuItem key={`${a.code}:${a.issuer}`} value={a.code}>{a.code}</MenuItem>
+            ))}
+          </TextField>
 
           {assetCode !== 'XLM' && (
             <TextField
+              fullWidth
               label="Issuer"
               value={issuer}
               onChange={e => setIssuer(e.target.value)}
-              size="small"
-              fullWidth
               placeholder="G...ISSUER"
+              size="small"
             />
           )}
 
           <TextField
+            fullWidth
+            label="Amount"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            size="small"
+            placeholder="0.0"
+          />
+
+          <TextField
+            fullWidth
             label="Memo (optional)"
             value={memoText}
             onChange={e => setMemoText(e.target.value)}
             size="small"
-            fullWidth
             inputProps={{ maxLength: 28 }}
             helperText={`${memoText.length}/28`}
           />
 
           <Typography variant="caption" color="text.secondary">
-            For REAL8 or other tokens, ensure the trustline exists before
-            sending.
+            For REAL8 or other tokens, ensure the trustline exists before sending.
           </Typography>
         </Stack>
       </DialogContent>
+
       <DialogActions>
         <Button onClick={onClose} disabled={submitting}>
           Cancel
@@ -189,12 +175,8 @@ const SendDialog: React.FC<SendDialogProps> = ({
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={disableSubmit}
-          startIcon={
-            submitting ? (
-              <CircularProgress size={16} color="inherit" />
-            ) : undefined
-          }
+          disabled={submitting}
+          startIcon={submitting ? <CircularProgress color="inherit" size={16} /> : undefined}
         >
           {submitting ? 'Sending...' : 'Send'}
         </Button>
