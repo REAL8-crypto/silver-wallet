@@ -3,7 +3,8 @@ import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import { useReal8Stats, formatPrice } from '../hooks/useReal8Stats';
+import { useReal8Pairs } from '../hooks/useReal8Pairs';
+import { formatPrice } from '../hooks/useReal8Stats';
 
 const assets = [
   { code: 'XLM', label: 'REAL8/XLM' },
@@ -14,23 +15,26 @@ const assets = [
 ];
 
 const MarketPricesGrid: React.FC<{ prices?: Record<string, number | string> }> = ({ prices }) => {
-  const stats = useReal8Stats();
+  const { prices: pairPrices } = useReal8Pairs();
   
-  // Get actual price data - for now using the same data from Real8Stats for XLM and USDC
+  // Get actual price data from useReal8Pairs hook
   const getPriceValue = (assetCode: string) => {
+    // Use passed-in prices first, then pairPrices from hook
     if (prices?.[assetCode] !== undefined) {
       return prices[assetCode];
     }
     
-    // Use Real8Stats data for available pairs
-    switch (assetCode) {
-      case 'XLM':
-        return formatPrice(stats.priceXlm, 'XLM');
-      case 'USDC':
-        return formatPrice(stats.priceUsd, 'USD');
-      default:
-        return '—'; // Placeholder for EURC, SLVR, GOLD until price feeds are available
+    const price = pairPrices[assetCode];
+    if (price !== null && price !== undefined) {
+      // Format based on asset type
+      if (assetCode === 'USDC' || assetCode === 'EURC') {
+        return formatPrice(price, 'USD'); // Use USD formatting for fiat
+      } else {
+        return formatPrice(price); // Use default formatting for XLM, SLVR, GOLD
+      }
     }
+    
+    return '—';
   };
 
   return (
