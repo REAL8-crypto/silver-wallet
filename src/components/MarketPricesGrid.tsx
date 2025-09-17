@@ -1,5 +1,5 @@
 import React from 'react';
-import Grid from '@mui/material/Grid';
+import Grid from '@mui/material/Grid';        // <-- IMPORTANT!
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 
