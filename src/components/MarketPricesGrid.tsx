@@ -1,19 +1,14 @@
 import React from 'react';
-import { Grid, Paper, Typography } from '@mui/material';
+import Grid from '@mui/material/Grid';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
 
-// Example props, adjust as needed
-interface PriceData {
-  code: string;
-  label: string;
-  value: string | number;
-}
-
-const assets: PriceData[] = [
-  { code: 'XLM', label: 'PRICE (XLM)', value: '—' },
-  { code: 'USDC', label: 'PRICE (USDC)', value: '—' },
-  { code: 'EURC', label: 'PRICE (EURC)', value: '—' },
-  { code: 'SLVR', label: 'PRICE (SLVR)', value: '—' },
-  { code: 'GOLD', label: 'PRICE (GOLD)', value: '—' },
+const assets = [
+  { code: 'XLM', label: 'PRICE (XLM)' },
+  { code: 'USDC', label: 'PRICE (USDC)' },
+  { code: 'EURC', label: 'PRICE (EURC)' },
+  { code: 'SLVR', label: 'PRICE (SLVR)' },
+  { code: 'GOLD', label: 'PRICE (GOLD)' },
 ];
 
 const MarketPricesGrid: React.FC<{ prices?: Record<string, number | string> }> = ({ prices }) => (
@@ -25,7 +20,7 @@ const MarketPricesGrid: React.FC<{ prices?: Record<string, number | string> }> =
             {asset.label}
           </Typography>
           <Typography variant="h6" sx={{ mt: 0.5 }}>
-            {prices && prices[asset.code] !== undefined ? prices[asset.code] : asset.value}
+            {prices?.[asset.code] !== undefined ? prices[asset.code] : '—'}
           </Typography>
         </Paper>
       </Grid>
