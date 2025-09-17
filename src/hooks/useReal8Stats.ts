@@ -13,8 +13,10 @@ type Stats = {
 
 const REAL8 = {
   code: 'REAL8',
-  issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD'
+  issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD',
+  totalSupply: 8888888880 // Fixed total supply
 };
+
 // CHANGE: USDC issuer to Circle's official
 const USDC_PUBLIC = {
   code: 'USDC',
@@ -81,7 +83,7 @@ export function useReal8Stats(): Stats {
   const [state, setState] = useState<Stats>({
     priceXlm: null,
     priceUsd: null,
-    totalSupply: null,
+    totalSupply: REAL8.totalSupply, // Use fixed total supply immediately
     circulating: null,
     updatedAt: null,
     loading: true,
@@ -98,18 +100,16 @@ export function useReal8Stats(): Stats {
 
   const poll = useCallback(async () => {
     try {
-      // Supply via /assets
-      let totalSupply: number | null = null;
+      // Use fixed total supply, but still fetch circulating from API
       let circulating: number | null = null;
       const aRes = await fetch(assetUrl, { cache: 'no-store', mode: 'cors' });
       if (aRes.ok) {
         const aJson = await aRes.json();
         const record = aJson?.records?.[0];
         if (record?.amount) {
-          const total = parseFloat(record.amount);
-          if (!Number.isNaN(total)) {
-            totalSupply = total;
-            circulating = total;
+          const amount = parseFloat(record.amount);
+          if (!Number.isNaN(amount)) {
+            circulating = amount;
           }
         }
       }
@@ -127,7 +127,7 @@ export function useReal8Stats(): Stats {
       setState({
         priceXlm,
         priceUsd,
-        totalSupply,
+        totalSupply: REAL8.totalSupply, // Always use the fixed value
         circulating,
         updatedAt: new Date(),
         loading: false,
