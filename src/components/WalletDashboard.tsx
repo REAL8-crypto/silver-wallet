@@ -150,7 +150,7 @@ const WalletDashboard: React.FC = () => {
               component="img"
               src={real8Logo}
               alt="REAL8 logo"
-              sx={{ height: { xs: 28, md: 56 }, width: 'auto', display: 'block' }}
+              sx={{ height: { xs: 42, md: 56 }, width: 'auto', display: 'block' }}
             />
           </Box>
 
