@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+// src/App.tsx
+import React, { useEffect, useState } from 'react';
 import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 import { WalletProvider } from './contexts/WalletContext';
 import WalletDashboard from './components/WalletDashboard';
+import SplashScreen from './components/SplashScreen';
 
 const theme = createTheme({
   palette: {
@@ -28,28 +30,44 @@ const theme = createTheme({
 });
 
 const App: React.FC = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
   useEffect(() => {
     document.body.style.margin = '0';
     document.body.style.padding = '0';
     document.body.style.minHeight = '100vh';
     document.body.style.backgroundColor = '#f5f5f5';
+
+    // Check if user has already selected a language
+    const savedLanguage = localStorage.getItem('i18nextLng');
+    if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'es')) {
+      setShowSplash(false);
+    }
   }, []);
+
+  const handleLanguageSelected = () => {
+    setShowSplash(false);
+  };
 
   return (
     <I18nextProvider i18n={i18n}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <WalletProvider>
-          <Box
-            sx={{
-              minHeight: '100vh',
-              display: 'flex',
-              flexDirection: 'column',
-              bgcolor: 'background.default'
-            }}
-          >
-            <WalletDashboard />
-          </Box>
+          {showSplash ? (
+            <SplashScreen onLanguageSelected={handleLanguageSelected} />
+          ) : (
+            <Box
+              sx={{
+                minHeight: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: 'background.default'
+              }}
+            >
+              <WalletDashboard />
+            </Box>
+          )}
         </WalletProvider>
       </ThemeProvider>
     </I18nextProvider>
