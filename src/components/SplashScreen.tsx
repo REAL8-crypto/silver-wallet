@@ -98,8 +98,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
               src={real8Logo}
               alt="REAL8 Logo"
               sx={{
-                width: { xs: 120, sm: 160 },
-                height: { xs: 120, sm: 160 },
+                width: 185,
+                height: 185,
                 objectFit: 'contain',
                 filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.1))',
                 transition: 'transform 0.3s ease',
@@ -115,8 +115,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: { xs: 140, sm: 180 },
-                height: { xs: 140, sm: 180 },
+                width: 205,
+                height: 205,
                 borderRadius: '50%',
                 background: 'radial-gradient(circle, rgba(25, 118, 210, 0.1) 0%, transparent 70%)',
                 zIndex: -1,
@@ -325,8 +325,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
                 src={real8Logo}
                 alt="REAL8 Logo"
                 sx={{
-                  width: 150,
-                  height: 150,
+                  width: 350,
+                  height: 350,
                   objectFit: 'contain',
                   filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.1))',
                   transition: 'transform 0.3s ease',
@@ -342,8 +342,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: 170,
-                  height: 170,
+                  width: 370,
+                  height: 370,
                   borderRadius: '50%',
                   background: 'radial-gradient(circle, rgba(25, 118, 210, 0.1) 0%, transparent 70%)',
                   zIndex: -1,
