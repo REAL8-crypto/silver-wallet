@@ -53,7 +53,7 @@ const SendDialog: React.FC<SendDialogProps> = ({ open, onClose }) => {
   // Reset on open
   useEffect(() => {
     if (open) {
-      setAssetCode('REAL8');
+      setAssetCode('REAL8');  // Default to REAL8 for REAL8-focused wallet
       setIssuer(REAL8.ISSUER);
       setDestination('');
       setAmount('');
