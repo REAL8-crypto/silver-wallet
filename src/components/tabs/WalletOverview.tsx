@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Paper, Stack, Button, Card, CardContent } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { useWallet } from '../contexts/WalletContext';
+import { useWallet } from '../../contexts/WalletContext';
 import { AccountBalanceWallet as WalletIcon, Send as SendIcon, CallReceived as ReceiveIcon } from '@mui/icons-material';
 
 interface WalletOverviewProps {
