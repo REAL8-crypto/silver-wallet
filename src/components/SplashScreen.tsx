@@ -80,15 +80,17 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
             background: 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(10px)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
-            maxWidth: '500px',
+            maxWidth: { xs: '500px', md: '900px' },
+            width: '100%',
             mx: 2
           }}
         >
-          {/* REAL8 Logo */}
+          {/* REAL8 Logo - Mobile only */}
           <Box
             sx={{
               mb: 4,
-              position: 'relative'
+              position: 'relative',
+              display: { xs: 'block', md: 'none' }
             }}
           >
             <Box
@@ -96,8 +98,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
               src={real8Logo}
               alt="REAL8 Logo"
               sx={{
-                width: { xs: 120, sm: 160, md: 200 },
-                height: { xs: 120, sm: 160, md: 200 },
+                width: { xs: 120, sm: 160 },
+                height: { xs: 120, sm: 160 },
                 objectFit: 'contain',
                 filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.1))',
                 transition: 'transform 0.3s ease',
@@ -113,8 +115,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: { xs: 140, sm: 180, md: 220 },
-                height: { xs: 140, sm: 180, md: 220 },
+                width: { xs: 140, sm: 180 },
+                height: { xs: 140, sm: 180 },
                 borderRadius: '50%',
                 background: 'radial-gradient(circle, rgba(25, 118, 210, 0.1) 0%, transparent 70%)',
                 zIndex: -1,
@@ -122,23 +124,6 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
               }}
             />
           </Box>
-
-          {/* Welcome text */}
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              fontWeight: 700,
-              mb: 2,
-              background: 'linear-gradient(45deg, #1976d2, #dc004e)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.5rem' }
-            }}
-          >
-            REAL8 Wallet
-          </Typography>
 
           <Typography
             variant="body1"
@@ -331,7 +316,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
             <Box
               sx={{
                 textAlign: 'center',
-                flex: '0 0 auto'
+                flex: '0 0 auto',
+                position: 'relative'
               }}
             >
               <Box
@@ -349,21 +335,21 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
                   }
                 }}
               />
-              <Typography
-                variant="h4"
-                component="h1"
+              {/* Subtle glow effect behind logo */}
+              <Box
                 sx={{
-                  fontWeight: 700,
-                  mt: 2,
-                  background: 'linear-gradient(45deg, #1976d2, #dc004e)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  fontSize: '2rem'
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: 170,
+                  height: 170,
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(25, 118, 210, 0.1) 0%, transparent 70%)',
+                  zIndex: -1,
+                  animation: 'pulse 3s ease-in-out infinite'
                 }}
-              >
-                REAL8 Wallet
-              </Typography>
+              />
             </Box>
 
             {/* Spanish Flag - Right side on desktop */}
