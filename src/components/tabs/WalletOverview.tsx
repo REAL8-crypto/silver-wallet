@@ -4,7 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { useWallet } from '../../contexts/WalletContext';
 import { AccountBalanceWallet as WalletIcon, Send as SendIcon, CallReceived as ReceiveIcon } from '@mui/icons-material';
 
-const WalletOverview: React.FC = () => {
+interface WalletOverviewProps {
+  onSend?: () => void;
+  onReceive?: () => void;
+}
+
+const WalletOverview: React.FC<WalletOverviewProps> = ({ onSend, onReceive }) => {
   const { t, i18n } = useTranslation();
   const { publicKey, balance, balances, unfunded, isTestnet } = useWallet();
   const isSpanish = i18n.language.startsWith('es');
@@ -81,10 +86,21 @@ const WalletOverview: React.FC = () => {
               {isSpanish ? 'Acciones Rápidas' : 'Quick Actions'}
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <Button variant="contained" startIcon={<SendIcon />} size="large">
+              <Button 
+                variant="contained" 
+                startIcon={<SendIcon />} 
+                size="large"
+                onClick={onSend}
+                disabled={unfunded || parseFloat(xlmBalance) === 0}
+              >
                 {isSpanish ? 'Enviar' : 'Send'}
               </Button>
-              <Button variant="outlined" startIcon={<ReceiveIcon />} size="large">
+              <Button 
+                variant="outlined" 
+                startIcon={<ReceiveIcon />} 
+                size="large"
+                onClick={onReceive}
+              >
                 {isSpanish ? 'Recibir' : 'Receive'}
               </Button>
             </Stack>
