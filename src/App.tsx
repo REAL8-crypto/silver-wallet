@@ -38,9 +38,9 @@ const App: React.FC = () => {
     document.body.style.minHeight = '100vh';
     document.body.style.backgroundColor = '#f5f5f5';
 
-    // Check if user has already selected a language
-    const savedLanguage = localStorage.getItem('i18nextLng');
-    if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'es')) {
+    // Check if user has completed the splash screen before
+    const hasSeenSplash = localStorage.getItem('real8_splash_completed');
+    if (hasSeenSplash === 'true') {
       setShowSplash(false);
     }
   }, []);
