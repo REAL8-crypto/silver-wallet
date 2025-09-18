@@ -316,8 +316,11 @@ const WalletDashboard: React.FC = () => {
 
           {/* Tab content with new components */}
           <TabPanel value="wallet" sx={{ px: 0, pt: 2 }}>
-            <WalletOverview />
-          </TabPanel>
+  <WalletOverview 
+    onSend={() => setOpenSend(true)}
+    onReceive={() => setOpenReceive(true)}
+  />
+</TabPanel>
           <TabPanel value="assets" sx={{ px: 0, pt: 2 }}>
             <AssetsManager />
           </TabPanel>
