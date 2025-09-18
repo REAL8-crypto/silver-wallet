@@ -20,6 +20,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
 
   const handleLanguageSelection = (language: string) => {
     i18n.changeLanguage(language);
+    // Mark that user has completed the splash screen
+    localStorage.setItem('real8_splash_completed', 'true');
     setFadeOut(true);
     // Delay the callback to allow fade animation to complete
     setTimeout(() => {
