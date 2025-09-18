@@ -47,7 +47,6 @@ async function fetchLastClosePrice(
   search.set('end_time', String(end));
   search.set('limit', '200');
   search.set('order', 'asc');
-
   const url = `${horizonBase}/trade_aggregations?${search.toString()}`;
   
   try {
@@ -79,7 +78,8 @@ async function fetchLastClosePrice(
 
 export const useReal8Pairs = () => {
   const { isTestnet } = useWallet();
-  const horizonBase = isTestnet ? 'https://horizon-testnet.stellar.org' : 'https://horizon.stellar.org';
+  // Always use mainnet for market prices since they're public data
+  const horizonBase = 'https://horizon.stellar.org';
   
   const [prices, setPrices] = useState<PriceResult>({});
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -87,27 +87,12 @@ export const useReal8Pairs = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchPrices = useCallback(async () => {
-    // Only fetch prices on mainnet
-    if (isTestnet) {
-      setPrices({
-        XLM: null,
-        USDC: null,
-        EURC: null,
-        SLVR: null,
-        GOLD: null,
-      });
-      setLastUpdated(new Date().toISOString());
-      setError('Prices not available on testnet');
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
       
       const newPrices: PriceResult = {};
-
+      
       // Fetch REAL8 prices against each asset
       for (const pair of PAIRS) {
         let price: number | null = null;
@@ -130,7 +115,7 @@ export const useReal8Pairs = () => {
         
         newPrices[pair.code] = price;
       }
-
+      
       setPrices(newPrices);
       setLastUpdated(new Date().toISOString());
       setError(null);
@@ -140,7 +125,7 @@ export const useReal8Pairs = () => {
     } finally {
       setLoading(false);
     }
-  }, [horizonBase, isTestnet]);
+  }, [horizonBase]);
 
   useEffect(() => {
     fetchPrices();
