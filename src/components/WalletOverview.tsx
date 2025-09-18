@@ -1,7 +1,6 @@
 import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
-import { useWallet } from '../contexts/WalletContext';
-import GeneralWalletButtons from './GeneralWalletButtons';
+import { useWallet } from '../../contexts/WalletContext';
 
 interface WalletOverviewProps {
   onSend?: () => void;
@@ -13,12 +12,8 @@ const WalletOverview: React.FC<WalletOverviewProps> = ({ onSend, onReceive }) =>
 
   return (
     <Box>
-      {/* General Wallet Action Buttons */}
-      {onSend && onReceive && (
-        <GeneralWalletButtons onSend={onSend} onReceive={onReceive} />
-      )}
-
-      {/* Wallet Details */}
+      {/* TODO: Add GeneralWalletButtons component later */}
+      
       <Paper sx={{ p: 3, mb: 2 }}>
         <Typography variant="h6" fontWeight={600} gutterBottom>
           Wallet Overview
