@@ -148,7 +148,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
               fontSize: { xs: '1rem', sm: '1.1rem' },
               maxWidth: '300px',
               mx: 'auto',
-              lineHeight: 1.6
+              lineHeight: 1.6,
+              display: { xs: 'block', md: 'none' } // Only show on mobile
             }}
           >
             Select your language to continue
@@ -156,67 +157,16 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
             Selecciona tu idioma para continuar
           </Typography>
 
-          {/* Language selection buttons */}
+          {/* Mobile Layout: Stacked vertically */}
           <Box
             sx={{
-              display: 'flex',
+              display: { xs: 'flex', md: 'none' },
               justifyContent: 'center',
               alignItems: 'center',
-              gap: { xs: 4, sm: 6 }
+              gap: 4
             }}
           >
-            {/* Spanish Flag */}
-            <Box sx={{ textAlign: 'center' }}>
-              <Tooltip title="Español" placement="top">
-                <IconButton
-                  onClick={() => handleLanguageSelection('es')}
-                  sx={{
-                    p: 2,
-                    borderRadius: 3,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
-                    },
-                    '&:active': {
-                      transform: 'translateY(-2px)'
-                    }
-                  }}
-                >
-                  <Typography
-                    component="span"
-                    sx={{
-                      fontSize: { xs: 40, sm: 50, md: 60 },
-                      lineHeight: 1,
-                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
-                    }}
-                  >
-                    🇪🇸
-                  </Typography>
-                </IconButton>
-              </Tooltip>
-              <Typography
-                variant="body2"
-                sx={{
-                  mt: 1,
-                  fontWeight: 600,
-                  color: 'text.secondary'
-                }}
-              >
-                Español
-              </Typography>
-            </Box>
-
-            {/* Divider */}
-            <Box
-              sx={{
-                width: '1px',
-                height: '60px',
-                background: 'linear-gradient(to bottom, transparent, #ccc, transparent)'
-              }}
-            />
-
-            {/* English Flag */}
+            {/* English Flag - First on mobile */}
             <Box sx={{ textAlign: 'center' }}>
               <Tooltip title="English" placement="top">
                 <IconButton
@@ -237,7 +187,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
                   <Typography
                     component="span"
                     sx={{
-                      fontSize: { xs: 40, sm: 50, md: 60 },
+                      fontSize: 40,
                       lineHeight: 1,
                       filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
                     }}
@@ -255,6 +205,221 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onLanguageSelected }) => {
                 }}
               >
                 English
+              </Typography>
+            </Box>
+
+            {/* Divider */}
+            <Box
+              sx={{
+                width: '1px',
+                height: '60px',
+                background: 'linear-gradient(to bottom, transparent, #ccc, transparent)'
+              }}
+            />
+
+            {/* Spanish Flag - Second on mobile */}
+            <Box sx={{ textAlign: 'center' }}>
+              <Tooltip title="Español" placement="top">
+                <IconButton
+                  onClick={() => handleLanguageSelection('es')}
+                  sx={{
+                    p: 2,
+                    borderRadius: 3,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
+                    },
+                    '&:active': {
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
+                >
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: 40,
+                      lineHeight: 1,
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                    }}
+                  >
+                    🇪🇸
+                  </Typography>
+                </IconButton>
+              </Tooltip>
+              <Typography
+                variant="body2"
+                sx={{
+                  mt: 1,
+                  fontWeight: 600,
+                  color: 'text.secondary'
+                }}
+              >
+                Español
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Desktop Layout: Logo in center, flags on sides */}
+          <Box
+            sx={{
+              display: { xs: 'none', md: 'flex' },
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              width: '100%'
+            }}
+          >
+            {/* English Flag - Left side on desktop */}
+            <Box 
+              sx={{ 
+                textAlign: 'center',
+                flex: '0 0 auto'
+              }}
+            >
+              <Tooltip title="English" placement="top">
+                <IconButton
+                  onClick={() => handleLanguageSelection('en')}
+                  sx={{
+                    p: 2,
+                    borderRadius: 3,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
+                    },
+                    '&:active': {
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
+                >
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: 60,
+                      lineHeight: 1,
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                    }}
+                  >
+                    🇺🇸
+                  </Typography>
+                </IconButton>
+              </Tooltip>
+              <Typography
+                variant="body1"
+                sx={{
+                  mt: 1,
+                  fontWeight: 700,
+                  color: 'text.primary',
+                  fontSize: '1.1rem'
+                }}
+              >
+                English
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'text.secondary',
+                  fontSize: '0.9rem'
+                }}
+              >
+                Select your language
+              </Typography>
+            </Box>
+
+            {/* Logo in center for desktop */}
+            <Box
+              sx={{
+                textAlign: 'center',
+                flex: '0 0 auto'
+              }}
+            >
+              <Box
+                component="img"
+                src={real8Logo}
+                alt="REAL8 Logo"
+                sx={{
+                  width: 150,
+                  height: 150,
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.1))',
+                  transition: 'transform 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.05)'
+                  }
+                }}
+              />
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{
+                  fontWeight: 700,
+                  mt: 2,
+                  background: 'linear-gradient(45deg, #1976d2, #dc004e)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontSize: '2rem'
+                }}
+              >
+                REAL8 Wallet
+              </Typography>
+            </Box>
+
+            {/* Spanish Flag - Right side on desktop */}
+            <Box 
+              sx={{ 
+                textAlign: 'center',
+                flex: '0 0 auto'
+              }}
+            >
+              <Tooltip title="Español" placement="top">
+                <IconButton
+                  onClick={() => handleLanguageSelection('es')}
+                  sx={{
+                    p: 2,
+                    borderRadius: 3,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
+                    },
+                    '&:active': {
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
+                >
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: 60,
+                      lineHeight: 1,
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                    }}
+                  >
+                    🇪🇸
+                  </Typography>
+                </IconButton>
+              </Tooltip>
+              <Typography
+                variant="body1"
+                sx={{
+                  mt: 1,
+                  fontWeight: 700,
+                  color: 'text.primary',
+                  fontSize: '1.1rem'
+                }}
+              >
+                Español
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'text.secondary',
+                  fontSize: '0.9rem'
+                }}
+              >
+                Selecciona tu idioma
               </Typography>
             </Box>
           </Box>
