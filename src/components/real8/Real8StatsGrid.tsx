@@ -85,7 +85,11 @@ const Real8StatsGrid: React.FC = () => {
                 sx={{
                   lineHeight: 1.15,
                   fontWeight: 500,
-                  wordWrap: 'break-word'
+                  wordWrap: 'break-word',
+                  // Reduce font size for very long numbers to prevent wrapping
+                  fontSize: stat.key === 'totalSupply' || stat.key === 'circulating' 
+                    ? { xs: '1.1rem', sm: '1.25rem' } 
+                    : undefined
                 }}
               >
                 {stat.value}
@@ -93,7 +97,6 @@ const Real8StatsGrid: React.FC = () => {
             </Paper>
           ))}
         </Box>
-
         {/* Error and updated time as full-width centered lines below cards */}
         {!stats.loading && stats.error && (
           <Typography
