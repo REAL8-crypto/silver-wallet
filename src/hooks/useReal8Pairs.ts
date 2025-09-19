@@ -93,80 +93,27 @@ export const useReal8Pairs = () => {
       
       const newPrices: PriceResult = {};
       
-      // First, fetch REAL8/XLM price as our base rate
-      let real8XlmPrice: number | null = null;
-      try {
-        real8XlmPrice = await fetchLastClosePrice(
-          horizonBase,
-          { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
-          { type: 'native' }
-        );
-        newPrices['XLM'] = real8XlmPrice;
-      } catch (error) {
-        console.warn('Failed to fetch REAL8/XLM price:', error);
-      }
-      
-      // Fetch direct pairs for USDC and EURC
-      for (const pair of PAIRS.filter(p => ['USDC', 'EURC'].includes(p.code))) {
-        try {
-          if (pair.issuer) {
-            const price = await fetchLastClosePrice(
-              horizonBase,
-              { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
-              { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer }
-            );
-            newPrices[pair.code] = price;
-          } else {
-            newPrices[pair.code] = null;
-          }
-        } catch (error) {
-          console.warn(`Failed to fetch REAL8/${pair.code} price:`, error);
-          newPrices[pair.code] = null;
+      // Fetch REAL8 prices against each asset
+      for (const pair of PAIRS) {
+        let price: number | null = null;
+        
+        if (pair.code === 'XLM') {
+          // REAL8/XLM - REAL8 as base, XLM as counter
+          price = await fetchLastClosePrice(
+            horizonBase,
+            { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
+            { type: 'native' }
+          );
+        } else if (pair.issuer) {
+          // All pairs now have real issuer addresses - fetch REAL8/ASSET prices
+          price = await fetchLastClosePrice(
+            horizonBase,
+            { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
+            { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer }
+          );
         }
-      }
-      
-      // For SLVR and GOLD, try direct pairs first, then fall back to indirect calculation
-      for (const pair of PAIRS.filter(p => ['SLVR', 'GOLD'].includes(p.code))) {
-        try {
-          if (pair.issuer) {
-            // Try direct REAL8/ASSET pair first
-            let price = await fetchLastClosePrice(
-              horizonBase,
-              { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
-              { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer }
-            );
-            
-            if (price) {
-              // Direct trading pair exists!
-              newPrices[pair.code] = price;
-              console.log(`Direct REAL8/${pair.code} trading pair found: ${price}`);
-            } else if (real8XlmPrice) {
-              // Fall back to indirect calculation via XLM
-              const assetXlmPrice = await fetchLastClosePrice(
-                horizonBase,
-                { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer },
-                { type: 'native' }
-              );
-              
-              if (assetXlmPrice && assetXlmPrice > 0) {
-                // Calculate REAL8/ASSET = (REAL8/XLM) / (ASSET/XLM)
-                const indirectPrice = real8XlmPrice / assetXlmPrice;
-                newPrices[pair.code] = indirectPrice;
-                console.log(`Calculated REAL8/${pair.code} via XLM: ${indirectPrice} (REAL8/XLM: ${real8XlmPrice}, ${pair.code}/XLM: ${assetXlmPrice})`);
-              } else {
-                console.warn(`No ${pair.code}/XLM price available for indirect calculation`);
-                newPrices[pair.code] = null;
-              }
-            } else {
-              newPrices[pair.code] = null;
-            }
-          } else {
-            newPrices[pair.code] = null;
-          }
-        } catch (error) {
-          console.warn(`Failed to fetch ${pair.code} price:`, error);
-          newPrices[pair.code] = null;
-        }
+        
+        newPrices[pair.code] = price;
       }
       
       setPrices(newPrices);
