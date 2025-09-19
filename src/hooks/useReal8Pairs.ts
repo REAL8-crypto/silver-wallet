@@ -125,20 +125,26 @@ export const useReal8Pairs = () => {
       if (real8XlmPrice) {
         for (const pair of PAIRS.filter(p => ['SLVR', 'GOLD'].includes(p.code))) {
           try {
-            // Fetch ASSET/XLM price (e.g., SLVR/XLM)
-            const assetXlmPrice = await fetchLastClosePrice(
-              horizonBase,
-              { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer },
-              { type: 'native' }
-            );
-            
-            if (assetXlmPrice && assetXlmPrice > 0) {
-              // Calculate REAL8/ASSET = (REAL8/XLM) / (ASSET/XLM)
-              const real8AssetPrice = real8XlmPrice / assetXlmPrice;
-              newPrices[pair.code] = real8AssetPrice;
-              console.log(`Calculated REAL8/${pair.code} price: ${real8AssetPrice} (REAL8/XLM: ${real8XlmPrice}, ${pair.code}/XLM: ${assetXlmPrice})`);
+            // Only proceed if issuer is not null
+            if (pair.issuer) {
+              // Fetch ASSET/XLM price (e.g., SLVR/XLM)
+              const assetXlmPrice = await fetchLastClosePrice(
+                horizonBase,
+                { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer },
+                { type: 'native' }
+              );
+              
+              if (assetXlmPrice && assetXlmPrice > 0) {
+                // Calculate REAL8/ASSET = (REAL8/XLM) / (ASSET/XLM)
+                const real8AssetPrice = real8XlmPrice / assetXlmPrice;
+                newPrices[pair.code] = real8AssetPrice;
+                console.log(`Calculated REAL8/${pair.code} price: ${real8AssetPrice} (REAL8/XLM: ${real8XlmPrice}, ${pair.code}/XLM: ${assetXlmPrice})`);
+              } else {
+                console.warn(`No ${pair.code}/XLM price available for indirect calculation`);
+                newPrices[pair.code] = null;
+              }
             } else {
-              console.warn(`No ${pair.code}/XLM price available for indirect calculation`);
+              console.warn(`No issuer found for ${pair.code}`);
               newPrices[pair.code] = null;
             }
           } catch (error) {
