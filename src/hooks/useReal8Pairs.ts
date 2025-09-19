@@ -93,27 +93,46 @@ export const useReal8Pairs = () => {
       
       const newPrices: PriceResult = {};
       
-      // Fetch REAL8 prices against each asset
-      for (const pair of PAIRS) {
+      // Add delay between requests to avoid rate limiting
+      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+      
+      // Fetch REAL8 prices against each asset with delays
+      for (let i = 0; i < PAIRS.length; i++) {
+        const pair = PAIRS[i];
         let price: number | null = null;
         
-        if (pair.code === 'XLM') {
-          // REAL8/XLM - REAL8 as base, XLM as counter
-          price = await fetchLastClosePrice(
-            horizonBase,
-            { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
-            { type: 'native' }
-          );
-        } else if (pair.issuer) {
-          // All pairs now have real issuer addresses - fetch REAL8/ASSET prices
-          price = await fetchLastClosePrice(
-            horizonBase,
-            { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
-            { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer }
-          );
+        try {
+          if (pair.code === 'XLM') {
+            // REAL8/XLM - REAL8 as base, XLM as counter
+            price = await fetchLastClosePrice(
+              horizonBase,
+              { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
+              { type: 'native' }
+            );
+          } else if (pair.issuer) {
+            // All pairs now have real issuer addresses - fetch REAL8/ASSET prices
+            price = await fetchLastClosePrice(
+              horizonBase,
+              { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
+              { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer }
+            );
+          }
+          
+          newPrices[pair.code] = price;
+          
+          // Add delay between requests (except for the last one)
+          if (i < PAIRS.length - 1) {
+            await delay(500); // 500ms delay between requests
+          }
+        } catch (error: any) {
+          console.warn(`Failed to fetch REAL8/${pair.code} price:`, error);
+          newPrices[pair.code] = null;
+          
+          // Still add delay even on error to avoid overwhelming the API
+          if (i < PAIRS.length - 1) {
+            await delay(500);
+          }
         }
-        
-        newPrices[pair.code] = price;
       }
       
       setPrices(newPrices);
@@ -129,7 +148,8 @@ export const useReal8Pairs = () => {
 
   useEffect(() => {
     fetchPrices();
-    const interval = setInterval(fetchPrices, 60000); // Update every minute
+    // Increase interval to 5 minutes to reduce API load
+    const interval = setInterval(fetchPrices, 5 * 60 * 1000); // Update every 5 minutes
     
     return () => clearInterval(interval);
   }, [fetchPrices]);
