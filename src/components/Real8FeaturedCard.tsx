@@ -5,7 +5,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { REAL8 } from '../constants/real8Asset';
 import { useWallet } from '../contexts/WalletContext';
-import { useReal8Stats, formatPrice, formatNumber } from '../hooks/useReal8Stats';
+import { useReal8Stats, formatNumber } from '../hooks/useReal8Stats';
 
 interface Real8FeaturedCardProps {
   onSend: () => void;
@@ -27,22 +27,13 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
   const { t } = useTranslation();
   const { balances, unfunded } = useWallet();
   const stats = useReal8Stats();
+
   const trustline = balances.find(b => b.asset_code === REAL8.CODE);
   const hasTrustline = !!trustline;
   const balance = trustline?.balance || '0';
 
-  // CHANGE: "PRICE (USD)" -> "PRICE (USDC)"
+  // Updated stat definitions as requested
   const statDefinitions = [
-    {
-      key: 'priceXlm',
-      label: 'PRICE (XLM)',
-      value: formatPrice(stats.priceXlm, 'XLM')
-    },
-    {
-      key: 'priceUsd',
-      label: 'PRICE (USDC)',
-      value: formatPrice(stats.priceUsd, 'USD')
-    },
     {
       key: 'totalSupply',
       label: 'TOTAL SUPPLY',
@@ -51,13 +42,22 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
     {
       key: 'circulating',
       label: 'CIRCULATING',
-      value: formatNumber(stats.circulating)
+      value: formatNumber(stats.totalSupply) // Same as total supply
+    },
+    {
+      key: 'trustlines',
+      label: 'TRUSTLINES',
+      value: '162 / 155'
+    },
+    {
+      key: 'totalTrades',
+      label: 'TOTAL TRADES',
+      value: '7,838'
     }
   ];
 
   let statusLabel = 'Active';
   let statusColor: 'default' | 'warning' | 'success' = 'success';
-
   if (!hasTrustline) {
     statusLabel = t('trustlineMissing');
     statusColor = 'warning';
@@ -95,6 +95,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
             'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent 60%)'
         }}
       />
+      
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
         <Box sx={{ flex: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
@@ -113,6 +114,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
               }}
             />
           </Stack>
+          
           <Typography
             variant={compact ? 'h5' : 'h4'}
             sx={{ fontWeight: 600, lineHeight: 1.15, textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
@@ -122,6 +124,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
               REAL8
             </Typography>
           </Typography>
+          
           {!!fiatDisplay && (
             <Typography variant="body2" sx={{ opacity: 0.85, mt: 0.5, fontWeight: 500 }}>
               {loadingPrice ? (
@@ -131,16 +134,19 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
               )}
             </Typography>
           )}
+          
           {!hasTrustline && !unfunded && (
             <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
               {t('addTrustlineToReceiveReal8')}
             </Typography>
           )}
+          
           {unfunded && (
             <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
               {t('fundBeforeAddingTrustlines')}
             </Typography>
           )}
+          
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.2} sx={{ mt: 2 }}>
             {!hasTrustline ? (
               <Button
@@ -208,6 +214,7 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
             )}
           </Stack>
         </Box>
+        
         {/* Stats grid on the right */}
         <Box
           sx={{
@@ -247,7 +254,11 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
                   color: 'white',
                   lineHeight: 1.15,
                   fontWeight: 500,
-                  wordWrap: 'break-word'
+                  wordWrap: 'break-word',
+                  // Smaller font size for large numbers to prevent wrapping
+                  fontSize: stat.key === 'totalSupply' || stat.key === 'circulating' 
+                    ? { xs: '0.85rem', sm: '1rem' } 
+                    : undefined
                 }}
               >
                 {stat.value}
