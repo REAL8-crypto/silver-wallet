@@ -109,12 +109,16 @@ export const useReal8Pairs = () => {
       // Fetch direct pairs for USDC and EURC
       for (const pair of PAIRS.filter(p => ['USDC', 'EURC'].includes(p.code))) {
         try {
-          const price = await fetchLastClosePrice(
-            horizonBase,
-            { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
-            { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer }
-          );
-          newPrices[pair.code] = price;
+          if (pair.issuer) {
+            const price = await fetchLastClosePrice(
+              horizonBase,
+              { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
+              { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer }
+            );
+            newPrices[pair.code] = price;
+          } else {
+            newPrices[pair.code] = null;
+          }
         } catch (error) {
           console.warn(`Failed to fetch REAL8/${pair.code} price:`, error);
           newPrices[pair.code] = null;
