@@ -26,7 +26,7 @@ const Real8StatsGrid: React.FC = () => {
     {
       key: 'trustlines',
       label: 'TRUSTLINES',
-      value: '162 total / 155 funded'
+      value: '162 / 155'
     },
     {
       key: 'totalTrades',
