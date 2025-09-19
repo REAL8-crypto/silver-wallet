@@ -14,24 +14,24 @@ const Real8StatsGrid: React.FC = () => {
   // Define stats array for mapping to cards
   const statDefinitions: StatDefinition[] = [
     {
-      key: 'priceXlm',
-      label: 'PRICE (XLM)',
-      value: formatPrice(stats.priceXlm, 'XLM')
-    },
-    {
-      key: 'priceUsd',
-      label: 'PRICE (USD)',
-      value: formatPrice(stats.priceUsd, 'USD')
-    },
-    {
       key: 'totalSupply',
       label: 'TOTAL SUPPLY',
       value: formatNumber(stats.totalSupply)
     },
     {
-      key: 'circulating',
+      key: 'circulating', 
       label: 'CIRCULATING',
-      value: formatNumber(stats.circulating)
+      value: formatNumber(stats.circulating || stats.totalSupply) // Show total supply if circulating not available
+    },
+    {
+      key: 'trustlines',
+      label: 'TRUSTLINES',
+      value: '162 total / 155 funded'
+    },
+    {
+      key: 'rating',
+      label: 'RATING',
+      value: '4.7'
     }
   ];
 
