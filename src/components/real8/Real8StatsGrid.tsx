@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
-import { useReal8Stats, formatPrice, formatNumber } from '../../hooks/useReal8Stats';
+import { useReal8Stats, formatNumber } from '../../hooks/useReal8Stats';
 
 type StatDefinition = {
   key: string;
@@ -11,7 +11,7 @@ type StatDefinition = {
 const Real8StatsGrid: React.FC = () => {
   const stats = useReal8Stats();
 
-  // Define stats array for mapping to cards
+  // Updated stats array with new information
   const statDefinitions: StatDefinition[] = [
     {
       key: 'totalSupply',
@@ -21,7 +21,7 @@ const Real8StatsGrid: React.FC = () => {
     {
       key: 'circulating', 
       label: 'CIRCULATING',
-      value: formatNumber(stats.circulating || stats.totalSupply) // Show total supply if circulating not available
+      value: formatNumber(stats.totalSupply) // Same as total supply as requested
     },
     {
       key: 'trustlines',
@@ -29,9 +29,9 @@ const Real8StatsGrid: React.FC = () => {
       value: '162 total / 155 funded'
     },
     {
-      key: 'rating',
-      label: 'RATING',
-      value: '4.7'
+      key: 'totalTrades',
+      label: 'TOTAL TRADES',
+      value: '7,838'
     }
   ];
 
@@ -86,9 +86,9 @@ const Real8StatsGrid: React.FC = () => {
                   lineHeight: 1.15,
                   fontWeight: 500,
                   wordWrap: 'break-word',
-                  // Reduce font size for very long numbers to prevent wrapping
+                  // Smaller font size for large numbers to prevent wrapping
                   fontSize: stat.key === 'totalSupply' || stat.key === 'circulating' 
-                    ? { xs: '0.95rem', sm: '1.1rem' } 
+                    ? { xs: '0.85rem', sm: '1rem' } 
                     : undefined
                 }}
               >
