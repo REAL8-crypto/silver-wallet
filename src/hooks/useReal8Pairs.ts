@@ -93,27 +93,63 @@ export const useReal8Pairs = () => {
       
       const newPrices: PriceResult = {};
       
-      // Fetch REAL8 prices against each asset
-      for (const pair of PAIRS) {
-        let price: number | null = null;
-        
-        if (pair.code === 'XLM') {
-          // REAL8/XLM - REAL8 as base, XLM as counter
-          price = await fetchLastClosePrice(
-            horizonBase,
-            { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
-            { type: 'native' }
-          );
-        } else if (pair.issuer) {
-          // All pairs now have real issuer addresses - fetch REAL8/ASSET prices
-          price = await fetchLastClosePrice(
+      // First, fetch REAL8/XLM price as our base rate
+      let real8XlmPrice: number | null = null;
+      try {
+        real8XlmPrice = await fetchLastClosePrice(
+          horizonBase,
+          { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
+          { type: 'native' }
+        );
+        newPrices['XLM'] = real8XlmPrice;
+      } catch (error) {
+        console.warn('Failed to fetch REAL8/XLM price:', error);
+      }
+      
+      // Fetch direct pairs for USDC and EURC
+      for (const pair of PAIRS.filter(p => ['USDC', 'EURC'].includes(p.code))) {
+        try {
+          const price = await fetchLastClosePrice(
             horizonBase,
             { type: 'credit_alphanum4', code: REAL8.code, issuer: REAL8.issuer },
             { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer }
           );
+          newPrices[pair.code] = price;
+        } catch (error) {
+          console.warn(`Failed to fetch REAL8/${pair.code} price:`, error);
+          newPrices[pair.code] = null;
         }
-        
-        newPrices[pair.code] = price;
+      }
+      
+      // For SLVR and GOLD, fetch their XLM prices and calculate indirect rates
+      if (real8XlmPrice) {
+        for (const pair of PAIRS.filter(p => ['SLVR', 'GOLD'].includes(p.code))) {
+          try {
+            // Fetch ASSET/XLM price (e.g., SLVR/XLM)
+            const assetXlmPrice = await fetchLastClosePrice(
+              horizonBase,
+              { type: 'credit_alphanum4', code: pair.code, issuer: pair.issuer },
+              { type: 'native' }
+            );
+            
+            if (assetXlmPrice && assetXlmPrice > 0) {
+              // Calculate REAL8/ASSET = (REAL8/XLM) / (ASSET/XLM)
+              const real8AssetPrice = real8XlmPrice / assetXlmPrice;
+              newPrices[pair.code] = real8AssetPrice;
+              console.log(`Calculated REAL8/${pair.code} price: ${real8AssetPrice} (REAL8/XLM: ${real8XlmPrice}, ${pair.code}/XLM: ${assetXlmPrice})`);
+            } else {
+              console.warn(`No ${pair.code}/XLM price available for indirect calculation`);
+              newPrices[pair.code] = null;
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch ${pair.code}/XLM price for indirect calculation:`, error);
+            newPrices[pair.code] = null;
+          }
+        }
+      } else {
+        // If we don't have REAL8/XLM price, we can't calculate indirect rates
+        newPrices['SLVR'] = null;
+        newPrices['GOLD'] = null;
       }
       
       setPrices(newPrices);
