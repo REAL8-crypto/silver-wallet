@@ -88,7 +88,7 @@ const Real8StatsGrid: React.FC = () => {
                   wordWrap: 'break-word',
                   // Reduce font size for very long numbers to prevent wrapping
                   fontSize: stat.key === 'totalSupply' || stat.key === 'circulating' 
-                    ? { xs: '1.1rem', sm: '1.25rem' } 
+                    ? { xs: '0.95rem', sm: '1.1rem' } 
                     : undefined
                 }}
               >
