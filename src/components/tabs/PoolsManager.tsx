@@ -498,7 +498,7 @@ const PoolsManager: React.FC = () => {
 
           {/* Pool Statistics Overview */}
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="primary" fontWeight={600}>
@@ -510,7 +510,7 @@ const PoolsManager: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="primary" fontWeight={600}>
@@ -522,7 +522,7 @@ const PoolsManager: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="success.main" fontWeight={600}>
@@ -534,7 +534,7 @@ const PoolsManager: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="info.main" fontWeight={600}>
