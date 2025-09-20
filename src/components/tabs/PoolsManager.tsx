@@ -27,7 +27,7 @@ import {
   IconButton,
   Snackbar,
   Grid2
-} from '@mui/material';
+} from '@mui/material/Unstable_Grid2';
 import { useTranslation } from 'react-i18next';
 import { useWallet } from '../../contexts/WalletContext';
 import { 
