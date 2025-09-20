@@ -26,7 +26,7 @@ import {
   Tooltip,
   IconButton,
   Snackbar,
-  Grid2
+  Grid
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useWallet } from '../../contexts/WalletContext';
@@ -553,40 +553,40 @@ const PoolsManager: React.FC = () => {
                 <Typography variant="h6" gutterBottom>
                   {isSpanish ? 'Tu Portafolio de Liquidez' : 'Your Liquidity Portfolio'}
                 </Typography>
-                <Grid2 container spacing={2}>
-                  <Grid2 xs={6} sm={3}>
+                <Grid container spacing={2}>
+                  <Grid item xs={6} sm={3}>
                     <Typography variant="body2" sx={{ opacity: 0.8 }}>
                       {isSpanish ? 'Pools Activos' : 'Active Pools'}
                     </Typography>
                     <Typography variant="h5" fontWeight={600}>
                       {userPools.length}
                     </Typography>
-                  </Grid2>
-                  <Grid2 xs={6} sm={3}>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
                     <Typography variant="body2" sx={{ opacity: 0.8 }}>
                       {isSpanish ? 'Valor Total' : 'Total Value'}
                     </Typography>
                     <Typography variant="h5" fontWeight={600}>
                       ${totalUserValue.toFixed(2)}
                     </Typography>
-                  </Grid2>
-                  <Grid2 xs={6} sm={3}>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
                     <Typography variant="body2" sx={{ opacity: 0.8 }}>
                       {isSpanish ? 'APY Promedio' : 'Avg APY'}
                     </Typography>
                     <Typography variant="h5" fontWeight={600}>
                       {(userPools.reduce((sum, pool) => sum + pool.apy, 0) / userPools.length).toFixed(1)}%
                     </Typography>
-                  </Grid2>
-                  <Grid2 xs={6} sm={3}>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
                     <Typography variant="body2" sx={{ opacity: 0.8 }}>
                       {isSpanish ? 'Recompensas Est.' : 'Est. Rewards'}
                     </Typography>
                     <Typography variant="h5" fontWeight={600} color="success.light">
                       ${(totalUserValue * 0.05).toFixed(2)}/día
                     </Typography>
-                  </Grid2>
-                </Grid2>
+                  </Grid>
+                </Grid>
               </CardContent>
             </Card>
           )}
@@ -676,8 +676,8 @@ const PoolsManager: React.FC = () => {
           )}
 
           {/* Pool Statistics Overview */}
-          <Grid2 container spacing={2}>
-            <Grid2 xs={12} sm={6} md={3}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="primary" fontWeight={600}>
@@ -688,8 +688,8 @@ const PoolsManager: React.FC = () => {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid2>
-            <Grid2 xs={12} sm={6} md={3}>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="primary" fontWeight={600}>
@@ -700,8 +700,8 @@ const PoolsManager: React.FC = () => {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid2>
-            <Grid2 xs={12} sm={6} md={3}>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="success.main" fontWeight={600}>
@@ -712,8 +712,8 @@ const PoolsManager: React.FC = () => {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid2>
-            <Grid2 xs={12} sm={6} md={3}>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="info.main" fontWeight={600}>
@@ -724,8 +724,8 @@ const PoolsManager: React.FC = () => {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid2>
-          </Grid2>
+            </Grid>
+          </Grid>
 
           {/* Available Pools */}
           <Paper sx={{ p: 2 }}>
