@@ -511,8 +511,8 @@ const PoolsManager: React.FC = () => {
           </Alert>
 
           {/* Pool Statistics Overview */}
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid2 container spacing={2}>
+            <Grid2 size={{ xs: 12, sm: 6, md: 3 }}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="primary" fontWeight={600}>
@@ -523,8 +523,8 @@ const PoolsManager: React.FC = () => {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            </Grid2>
+            <Grid2 size={{ xs: 12, sm: 6, md: 3 }}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="primary" fontWeight={600}>
@@ -535,8 +535,8 @@ const PoolsManager: React.FC = () => {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            </Grid2>
+            <Grid2 size={{ xs: 12, sm: 6, md: 3 }}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="success.main" fontWeight={600}>
@@ -547,8 +547,8 @@ const PoolsManager: React.FC = () => {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            </Grid2>
+            <Grid2 size={{ xs: 12, sm: 6, md: 3 }}>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" color="info.main" fontWeight={600}>
@@ -559,8 +559,8 @@ const PoolsManager: React.FC = () => {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </Grid2>
+          </Grid2>
 
           {/* Available Pools */}
           <Paper sx={{ p: 2 }}>
