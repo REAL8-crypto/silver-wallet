@@ -497,56 +497,56 @@ const PoolsManager: React.FC = () => {
           </Alert>
 
           {/* Pool Statistics Overview */}
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { 
-              xs: 'repeat(2, 1fr)', 
-              sm: 'repeat(2, 1fr)', 
-              md: 'repeat(4, 1fr)' 
-            }, 
-            gap: 2 
-          }}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" color="primary" fontWeight={600}>
-                  {pools.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {isSpanish ? 'Fondos Disponibles' : 'Available Pools'}
-                </Typography>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" color="primary" fontWeight={600}>
-                  ${pools.reduce((sum, pool) => sum + pool.tvl, 0).toLocaleString()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {isSpanish ? 'TVL Total' : 'Total TVL'}
-                </Typography>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" color="success.main" fontWeight={600}>
-                  {pools.length > 0 ? (pools.reduce((sum, pool) => sum + pool.apy, 0) / pools.length).toFixed(1) : '0'}%
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {isSpanish ? 'APY Promedio' : 'Average APY'}
-                </Typography>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" color="info.main" fontWeight={600}>
-                  ${pools.reduce((sum, pool) => sum + pool.volume24h, 0).toLocaleString()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {isSpanish ? 'Volumen 24h' : '24h Volume'}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4" color="primary" fontWeight={600}>
+                    {pools.length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {isSpanish ? 'Fondos Disponibles' : 'Available Pools'}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4" color="primary" fontWeight={600}>
+                    ${pools.reduce((sum, pool) => sum + pool.tvl, 0).toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {isSpanish ? 'TVL Total' : 'Total TVL'}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4" color="success.main" fontWeight={600}>
+                    {pools.length > 0 ? (pools.reduce((sum, pool) => sum + pool.apy, 0) / pools.length).toFixed(1) : '0'}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {isSpanish ? 'APY Promedio' : 'Average APY'}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4" color="info.main" fontWeight={600}>
+                    ${pools.reduce((sum, pool) => sum + pool.volume24h, 0).toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {isSpanish ? 'Volumen 24h' : '24h Volume'}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
 
           {/* Available Pools */}
           <Paper sx={{ p: 2 }}>
