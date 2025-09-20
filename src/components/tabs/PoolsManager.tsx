@@ -41,11 +41,13 @@ import {
   History as HistoryIcon,
   Warning as WarningIcon
 } from '@mui/icons-material';
-import { Server, Horizon, Asset as StellarAsset } from 'stellar-sdk';
+import { Server, Asset } from '../../utils/stellar';
+import { REAL8 } from '../../constants/real8Asset';
+import * as StellarSdk from 'stellar-sdk';
 
 // Canonical asset definitions (REAL8 base pairs)
 const ASSETS = {
-  REAL8: { code: 'REAL8', issuer: 'GBVYYQ7XXRZW6ZCNNCL2X2THNPQ6IM4O47HAA25JTAG7Z3CXJCQ3W4CD' },
+  REAL8: { code: REAL8.CODE, issuer: REAL8.ISSUER },
   XLM:   { code: 'XLM', issuer: null }, // native
   USDC:  { code: 'USDC', issuer: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN' }, // centre.io
   EURC:  { code: 'EURC', issuer: 'GDHU6WRG4IEQXM5NZ4BMPKOXHW76MZM4Y2IEMFDVXBSDP6SJY4ITNPP2' }, // circle.com
@@ -91,7 +93,7 @@ type PoolDialogData = {
 
 const PoolsManager: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { publicKey, joinLiquidityPool, network } = useWallet();
+  const { publicKey, joinLiquidityPool, networkMode, balances } = useWallet();
   const isSpanish = i18n.language.startsWith('es');
   
   // State management
@@ -113,9 +115,9 @@ const PoolsManager: React.FC = () => {
     severity: 'info'
   });
 
-  // Server instance based on network
+  // Create Server instance using your existing pattern
   const server = new Server(
-    network === 'testnet' 
+    networkMode === 'testnet' 
       ? 'https://horizon-testnet.stellar.org'
       : 'https://horizon.stellar.org'
   );
@@ -138,14 +140,15 @@ const PoolsManager: React.FC = () => {
       
       for (const pairedAsset of pairAssets) {
         try {
+          // Create Asset instances using your existing pattern
+          const real8Asset = new Asset(ASSETS.REAL8.code, ASSETS.REAL8.issuer);
+          const pairedStellarAsset = pairedAsset.code === 'XLM' 
+            ? Asset.native() 
+            : new Asset(pairedAsset.code, pairedAsset.issuer!);
+
           // Query Stellar for liquidity pools containing REAL8 and the paired asset
           const poolsResponse = await server.liquidityPools()
-            .forAssets([
-              new StellarAsset(ASSETS.REAL8.code, ASSETS.REAL8.issuer),
-              pairedAsset.code === 'XLM' 
-                ? StellarAsset.native() 
-                : new StellarAsset(pairedAsset.code, pairedAsset.issuer!)
-            ])
+            .forAssets(real8Asset, pairedStellarAsset)
             .limit(10)
             .call();
 
@@ -160,7 +163,7 @@ const PoolsManager: React.FC = () => {
             // Calculate TVL based on reserves and current prices
             // Note: In production, you'd fetch real prices from price feeds
             const mockPrices = {
-              REAL8: 0.025,
+              [REAL8.CODE]: 0.025,
               XLM: 0.12,
               USDC: 1.00,
               EURC: 1.10,
@@ -174,23 +177,15 @@ const PoolsManager: React.FC = () => {
             
             // Calculate user's share if they have positions
             let userShares = 0;
-            if (publicKey) {
-              try {
-                const account = await server.loadAccount(publicKey);
-                const trustlines = account.balances;
-                
-                // Look for liquidity pool shares
-                const lpBalance = trustlines.find(balance => 
-                  balance.asset_type === 'liquidity_pool_shares' && 
-                  'liquidity_pool_id' in balance &&
-                  balance.liquidity_pool_id === pool.id
-                );
-                
-                if (lpBalance && 'balance' in lpBalance) {
-                  userShares = parseFloat(lpBalance.balance);
-                }
-              } catch (error) {
-                console.log('Could not fetch user LP positions:', error);
+            if (publicKey && balances.length > 0) {
+              // Look for liquidity pool shares in user's balances
+              const lpBalance = balances.find(balance => 
+                balance.asset_type === 'liquidity_pool_shares' && 
+                balance.liquidity_pool_id === pool.id
+              );
+              
+              if (lpBalance) {
+                userShares = parseFloat(lpBalance.balance);
               }
             }
             
@@ -212,12 +207,12 @@ const PoolsManager: React.FC = () => {
             });
           }
         } catch (error) {
-          console.log(`No liquidity pool found for REAL8/${pairedAsset.code}:`, error);
+          console.log(`No liquidity pool found for ${REAL8.CODE}/${pairedAsset.code}:`, error);
           
           // Create placeholder for potential pool (not yet created)
           const poolId = generatePoolId(ASSETS.REAL8, pairedAsset);
           const mockPrices = {
-            REAL8: 0.025,
+            [REAL8.CODE]: 0.025,
             XLM: 0.12,
             USDC: 1.00,
             EURC: 1.10,
@@ -251,7 +246,7 @@ const PoolsManager: React.FC = () => {
       // Fallback to mock data if discovery fails
       return initializePools();
     }
-  }, [server, publicKey, initializePools]);
+  }, [server, publicKey, balances]);
 
   // Initial mock data for demonstration (fallback)
   const initializePools = useCallback((): PoolDef[] => [
@@ -335,7 +330,7 @@ const PoolsManager: React.FC = () => {
   // Load pool data on mount
   useEffect(() => {
     if (publicKey) {
-      // Try to discover real pools from Stellar network
+      // Try to discover real pools (currently using mock data)
       discoverLiquidityPools().then(setPools);
     } else {
       // Use mock data when no wallet is connected
@@ -344,14 +339,15 @@ const PoolsManager: React.FC = () => {
     }
   }, [publicKey, discoverLiquidityPools, initializePools]);
 
-  // Fetch real pool data from Stellar
+  // Fetch real pool data (placeholder for future integration)
   const fetchPoolData = useCallback(async () => {
     if (!publicKey) return;
     
     try {
       setRefreshing(true);
       
-      // Discover real liquidity pools from Stellar network
+      // Discover pools using mock data for now
+      // TODO: Integrate with your existing Stellar SDK setup
       const discoveredPools = await discoverLiquidityPools();
       setPools(discoveredPools);
       
