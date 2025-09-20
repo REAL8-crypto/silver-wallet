@@ -41,7 +41,7 @@ import {
   History as HistoryIcon,
   Warning as WarningIcon
 } from '@mui/icons-material';
-import { Server, Asset } from '../../../src/utils/stellar';
+import { Server, Asset } from '../../utils/stellar';
 import { REAL8 } from '../../constants/real8Asset';
 import * as StellarSdk from 'stellar-sdk';
 
