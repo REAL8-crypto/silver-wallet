@@ -26,7 +26,7 @@ import {
   Tooltip,
   IconButton,
   Snackbar,
-  Grid
+  Grid2
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useWallet } from '../../contexts/WalletContext';
@@ -114,12 +114,21 @@ const PoolsManager: React.FC = () => {
     severity: 'info'
   });
 
-  // Create Server instance using your existing pattern
-  const server = new Server(
-    networkMode === 'testnet' 
-      ? 'https://horizon-testnet.stellar.org'
-      : 'https://horizon.stellar.org'
-  );
+  // Create Server instance exactly like WalletContext does
+  const serverRef = React.useRef<any | null>(null);
+  
+  React.useEffect(() => {
+    try {
+      serverRef.current = new Server(
+        networkMode === 'testnet' 
+          ? 'https://horizon-testnet.stellar.org'
+          : 'https://horizon.stellar.org'
+      );
+    } catch (error) {
+      console.error('Failed to create Stellar server:', error);
+      serverRef.current = null;
+    }
+  }, [networkMode]);
 
   // Generate pool identifier from asset pair
   const generatePoolId = (assetA: { code: string; issuer: string | null }, assetB: { code: string; issuer: string | null }): string => {
@@ -210,6 +219,11 @@ const PoolsManager: React.FC = () => {
 
   // Discover real liquidity pools from Stellar network
   const discoverLiquidityPools = useCallback(async (): Promise<PoolDef[]> => {
+    if (!serverRef.current) {
+      console.warn('Stellar server not available, using mock data');
+      return initializePools();
+    }
+
     try {
       const discoveredPools: PoolDef[] = [];
       
@@ -225,7 +239,7 @@ const PoolsManager: React.FC = () => {
             : new Asset(pairedAsset.code, pairedAsset.issuer!);
 
           // Query Stellar for liquidity pools containing REAL8 and the paired asset
-          const poolsResponse = await server.liquidityPools()
+          const poolsResponse = await serverRef.current.liquidityPools()
             .forAssets(real8Asset, pairedStellarAsset)
             .limit(10)
             .call();
@@ -323,7 +337,7 @@ const PoolsManager: React.FC = () => {
       // Fallback to mock data if discovery fails
       return initializePools();
     }
-  }, [server, publicKey, balances, initializePools]);
+  }, [publicKey, balances, initializePools]);
 
   // Load pool data on mount with real Stellar integration
   useEffect(() => {
