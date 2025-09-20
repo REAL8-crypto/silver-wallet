@@ -25,7 +25,7 @@ import {
   CircularProgress,
   Tooltip,
   IconButton,
-  Snackbar
+  Snackbar,
   Grid2
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
