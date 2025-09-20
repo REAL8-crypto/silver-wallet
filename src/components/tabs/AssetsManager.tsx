@@ -261,7 +261,7 @@ const AssetsManager: React.FC = () => {
                         <Typography variant="body2" color="text.secondary">
                           {balance.limit === '922337203685.4775807' ? 
                             (isSpanish ? 'Sin límite' : 'No limit') : 
-                            parseFloat(balance.limit).toFixed(2)
+                            balance.limit ? parseFloat(balance.limit).toFixed(2) : 'N/A'
                           }
                         </Typography>
                       </TableCell>
