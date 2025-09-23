@@ -1,26 +1,40 @@
-// Runtime-safe helper module that normalizes the different module shapes of @stellar/stellar-sdk
-// (ESM default vs CommonJS/namespace)
+// Stellar SDK imports based on actual v14.x structure
+import * as StellarSdk from '@stellar/stellar-sdk';
 
-import * as StellarSdkNS from '@stellar/stellar-sdk';
+// Server is under the Horizon namespace
+const Server = StellarSdk.Horizon.Server;
 
-// Normalize runtime shape to handle both ESM default and CommonJS/namespace imports
-const StellarSdk: any = (StellarSdkNS as any).default || StellarSdkNS;
+// Other classes are re-exported from stellar-base
+const {
+  Asset,
+  Keypair,
+  TransactionBuilder,
+  Networks,
+  Operation,
+  Transaction,
+  xdr,
+  StrKey,
+  TimeoutInfinite,
+  Memo
+} = StellarSdk;
 
-// Export commonly used members for direct access
-export const Server = StellarSdk.Server;
-export const Asset = StellarSdk.Asset;
-export const Keypair = StellarSdk.Keypair;
-export const TransactionBuilder = StellarSdk.TransactionBuilder;
-export const Networks = StellarSdk.Networks;
-export const Operation = StellarSdk.Operation;
-export const Transaction = StellarSdk.Transaction;
-export const xdr = StellarSdk.xdr;
-export const StrKey = StellarSdk.StrKey;
-export const TimeoutInfinite = StellarSdk.TimeoutInfinite;
-export const Memo = StellarSdk.Memo;
+// Re-export for consistency with existing code
+export {
+  Server,
+  Asset,
+  Keypair,
+  TransactionBuilder,
+  Networks,
+  Operation,
+  Transaction,
+  xdr,
+  StrKey,
+  TimeoutInfinite,
+  Memo
+};
 
 // TypeScript type alias for Asset instances
-export type AssetInstance = InstanceType<typeof StellarSdk.Asset>;
+export type AssetInstance = InstanceType<typeof Asset>;
 
-// Default export of the normalized StellarSdk
+// Export the main SDK namespace
 export default StellarSdk;
