@@ -1,0 +1,19 @@
+name: Block zero-change PRs
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  check-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute changed files via GitHub API
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          CHANGED=$(gh api repos/$REPO/pulls/$PR_NUMBER --jq '.changed_files')
+          echo "changed_files: $CHANGED"
+          if [ "$CHANGED" -eq "0" ]; then
+            echo "No changed files in this PR. Failing the check."
+            exit 1
