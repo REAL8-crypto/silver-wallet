@@ -267,34 +267,34 @@ const WalletDashboard: React.FC = () => {
             }}
           >
             <TabList
-              onChange={handleTabChange}
-              variant="fullWidth"
-              sx={{
-                mb: { xs: 0.5, sm: 1 },
-                '.MuiTabs-flexContainer': {
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: { xs: 0.5, sm: 0.75, md: 0.75, lg: 1 }
-                },
-                '.MuiTab-root': {
-                  flex: { xs: 1, md: '0 0 auto' },
-                  minWidth: { xs: 0, md: 72 },
-                  minHeight: { xs: 56, sm: 64, md: 72 },
-                  py: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                },
-                '.MuiTab-root .MuiSvgIcon-root': {
-                  fontSize: { xs: 38, sm: 45, md: 50, lg: 58 }
-                }
-              }}
-            >
-              <Tab icon={<WalletIcon />} value="wallet" aria-label={isSpanish ? 'Billetera' : 'Wallet'} />
-              <Tab icon={<AssetsIcon />} value="assets" aria-label={isSpanish ? 'Activos' : 'Assets'} />
-              <Tab icon={<PoolIcon />} value="pools" aria-label={isSpanish ? 'Pools' : 'Pools'} />
-              <Tab icon={<SettingsIcon />} value="settings" aria-label={isSpanish ? 'Ajustes' : 'Settings'} />
-            </TabList>
+  onChange={handleTabChange}
+  variant="fullWidth"
+  sx={{
+    mb: { xs: 0.5, sm: 1 },
+    '.MuiTabs-flexContainer': {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: { xs: 0.5, sm: 0.75, md: 1.5, lg: 2.25 }  // Added md: 1, lg: 1.25
+    },
+    '.MuiTab-root': {
+      flex: { xs: 1, md: '0 0 auto' },
+      minWidth: { xs: 0, md: 72 },
+      minHeight: { xs: 56, sm: 64, md: 72 },
+      py: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    '.MuiTab-root .MuiSvgIcon-root': {
+      fontSize: { xs: 38, sm: 45, md: 50, lg: 58 }
+    }
+  }}
+>
+  <Tab icon={<WalletIcon />} value="wallet" aria-label={isSpanish ? 'Billetera' : 'Wallet'} />
+  <Tab icon={<AssetsIcon />} value="assets" aria-label={isSpanish ? 'Activos' : 'Assets'} />
+  <Tab icon={<PoolIcon />} value="pools" aria-label={isSpanish ? 'Fondos' : 'Pools'} />
+  <Tab icon={<SettingsIcon />} value="settings" aria-label={isSpanish ? 'Ajustes' : 'Settings'} />
+</TabList>
           </Box>
 
           <TabPanel value="wallet" sx={{ px: 0, pt: 2 }}>

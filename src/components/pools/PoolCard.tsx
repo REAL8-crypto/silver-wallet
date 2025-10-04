@@ -59,37 +59,31 @@ export const PoolCard: React.FC<PoolCardProps> = ({
     }}>
       <Box sx={{ 
         display: 'flex', 
-        flexDirection: { xs: 'column', sm: 'row' }, 
-        gap: 2, 
-        alignItems: 'flex-start' 
+        flexDirection: 'column',
+        gap: 2
       }}>
         {/* Pool Name and Badges */}
-        <Box sx={{ flex: '0 0 auto', minWidth: { xs: '100%', sm: '200px' } }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PoolIcon color="primary" />
-            <Typography variant="h6" fontWeight={500}>
-              {pool.assetA.code}/{pool.assetB.code}
-            </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <PoolIcon color="primary" />
+          <Typography variant="h6" fontWeight={500}>
+            {pool.assetA.code}/{pool.assetB.code}
+          </Typography>
+          <Chip 
+            label={`${pool.fee}%`} 
+            size="small" 
+            variant="outlined"
+          />
+          {pool.tvl === 0 && (
             <Chip 
-              label={`${pool.fee}%`} 
+              label={isSpanish ? 'Sin crear' : 'Not created'} 
               size="small" 
-              variant="outlined"
-              sx={{ ml: 1 }}
+              color="warning"
             />
-            {pool.tvl === 0 && (
-              <Chip 
-                label={isSpanish ? 'Sin crear' : 'Not created'} 
-                size="small" 
-                color="warning"
-                sx={{ ml: 1 }}
-              />
-            )}
-          </Box>
+          )}
         </Box>
         
         {/* Pool Statistics Grid */}
         <Box sx={{ 
-          flex: 1, 
           display: 'grid', 
           gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, 
           gap: 2 
@@ -134,8 +128,11 @@ export const PoolCard: React.FC<PoolCardProps> = ({
           </Box>
         </Box>
         
-        {/* Action Button */}
-        <Box sx={{ flex: '0 0 auto' }}>
+        {/* Action Button - Full width on mobile, auto width on larger screens */}
+        <Box sx={{ 
+          display: 'flex',
+          justifyContent: { xs: 'stretch', sm: 'flex-end' }
+        }}>
           <Button
             variant={pool.userShare > 0 ? 'outlined' : 'contained'}
             size="small"
@@ -143,6 +140,10 @@ export const PoolCard: React.FC<PoolCardProps> = ({
             onClick={handleAction}
             disabled={!canJoinPool || hasMissingTrustlines}
             color={hasMissingTrustlines ? 'warning' : 'primary'}
+            sx={{ 
+              width: { xs: '100%', sm: 'auto' },
+              minWidth: { sm: 120 } 
+            }}
           >
             {pool.userShare > 0
               ? (isSpanish ? 'Agregar' : 'Add More')

@@ -29,16 +29,13 @@ interface WalletContextValue {
   loading: boolean;
   lastUpdated: Date | null;
   error: string | null;
-
   generateWallet: () => void;
   importSecret: (secret: string) => void;
   disconnect: () => void;
   refresh: () => Promise<void>;
-
   // Legacy aliases
   createWallet: () => void;
   importWallet: (secret: string) => void;
-
   sendPayment: (opts: {
     destination: string;
     amount: string;
@@ -46,7 +43,6 @@ interface WalletContextValue {
     issuer?: string;
     memoText?: string;
   }) => Promise<void>;
-
   sendPaymentLegacy: (
     destination: string,
     amount: string,
@@ -54,7 +50,6 @@ interface WalletContextValue {
     issuer?: string,
     memoText?: string
   ) => Promise<void>;
-
   addTrustline: (assetCode: string, issuer: string, limit?: string) => Promise<void>;
   removeTrustline: (assetCode: string, issuer: string) => Promise<void>;
   joinLiquidityPool: (opts: {
@@ -65,7 +60,6 @@ interface WalletContextValue {
     maxAmountA: string;
     maxAmountB: string;
   }) => Promise<void>;
-
   networkMode: NetworkMode;
   setNetworkMode: (mode: NetworkMode) => void;
 }
@@ -98,22 +92,20 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [networkMode, setNetworkMode] = useState<NetworkMode>(
     (localStorage.getItem('NETWORK_MODE') as NetworkMode) || 'testnet'
   );
-  const cfg = getConfig(networkMode);
 
+  const cfg = getConfig(networkMode);
   const serverRef = useRef<any | null>(null);
   const serverCtorRef = useRef<any | null>(null);
   const warnedRef = useRef(false);
 
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [secretKey, setSecretKey] = useState<string | null>(null);
-
   const [balance, setBalance] = useState('0');
   const [balances, setBalances] = useState<BalanceLine[]>([]);
   const [unfunded, setUnfunded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   const pollingRef = useRef<number | null>(null);
 
   // Initialize server when network mode changes
@@ -195,7 +187,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         pollingRef.current = null;
       }
     }
-
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
@@ -329,6 +320,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const fee = String(await serverRef.current.fetchBaseFee());
 
       const asset = new Asset(assetCode, issuer);
+
       const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
         .addOperation(Operation.changeTrust({
           asset,
@@ -359,6 +351,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const fee = String(await serverRef.current.fetchBaseFee());
       
       const asset = new Asset(assetCode, issuer);
+
       const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
         .addOperation(Operation.changeTrust({
           asset,
@@ -401,65 +394,73 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLoading(true);
       setError(null);
 
-      // Validate amounts are positive
+      // Validate amounts
       if (parseFloat(maxAmountA) <= 0 || parseFloat(maxAmountB) <= 0) {
         throw new Error('Amounts must be positive');
       }
 
-      // Build Asset instances for A and B
+      // Build Asset instances
       const assetA = assetACode === 'XLM' ? Asset.native() : new Asset(assetACode, assetAIssuer);
       const assetB = assetBCode === 'XLM' ? Asset.native() : new Asset(assetBCode, assetBIssuer);
 
-      console.log('[joinLiquidityPool] Looking for pool with assets:', assetA, assetB);
+      console.log('[joinLiquidityPool] Assets:', { assetA, assetB });
 
-      // Fetch the pool
-      const poolsResponse = await serverRef.current.liquidityPools().forAssets(assetA, assetB).call();
+      // Fetch pool
+      const poolsResponse = await serverRef.current
+        .liquidityPools()
+        .forAssets(assetA, assetB)
+        .call();
+
       if (!poolsResponse.records || poolsResponse.records.length === 0) {
         throw new Error('Liquidity pool not found for these assets');
       }
-      
+
       const pool = poolsResponse.records[0];
       const poolId = pool.id;
+
       console.log('[joinLiquidityPool] Found pool:', poolId);
       console.log('[joinLiquidityPool] Pool reserves:', pool.reserves);
 
-      // Calculate current pool price from reserves
-      const reserve0 = parseFloat(pool.reserves[0].amount);
-      const reserve1 = parseFloat(pool.reserves[1].amount);
-      const poolPrice = reserve1 / reserve0; // Price of asset1 in terms of asset0
-      console.log('[joinLiquidityPool] Current pool price:', poolPrice);
-
-      // Determine canonical order from pool.reserves
+      // Determine canonical order from pool reserves
       const reserve0Asset = pool.reserves[0].asset;
       let canonicalMaxAmountA, canonicalMaxAmountB;
 
-      // Check if our assetA matches reserve0
-      const assetAMatches = (reserve0Asset === 'native' && assetACode === 'XLM') ||
-                           (reserve0Asset !== 'native' && 
-                            reserve0Asset.includes(assetACode) && 
-                            reserve0Asset.includes(assetAIssuer));
+      const assetAMatches = 
+        (reserve0Asset === 'native' && assetACode === 'XLM') ||
+        (reserve0Asset !== 'native' && 
+         reserve0Asset.includes(assetACode) && 
+         reserve0Asset.includes(assetAIssuer));
 
       if (assetAMatches) {
         canonicalMaxAmountA = maxAmountA;
         canonicalMaxAmountB = maxAmountB;
       } else {
-        // Swap amounts
         canonicalMaxAmountA = maxAmountB;
         canonicalMaxAmountB = maxAmountA;
       }
 
-      console.log('[joinLiquidityPool] Canonical amounts:', { canonicalMaxAmountA, canonicalMaxAmountB });
+      console.log('[joinLiquidityPool] Canonical amounts:', { 
+        canonicalMaxAmountA, 
+        canonicalMaxAmountB 
+      });
 
       // Load fresh account
       const account = await serverRef.current.loadAccount(publicKey);
       const freshBalances: BalanceLine[] = account.balances;
+
+      // Check for pool share trustline
+      const hasPoolShareTrustline = freshBalances.some(
+        b => b.liquidity_pool_id === poolId
+      );
+
+      console.log('[joinLiquidityPool] Has pool share trustline:', hasPoolShareTrustline);
 
       // Validate balances
       const balA = freshBalances.find(b => 
         (assetACode === 'XLM' && b.asset_type === 'native') || 
         (assetACode !== 'XLM' && b.asset_code === assetACode && b.asset_issuer === assetAIssuer)
       )?.balance || '0';
-      
+
       const balB = freshBalances.find(b => 
         (assetBCode === 'XLM' && b.asset_type === 'native') || 
         (assetBCode !== 'XLM' && b.asset_code === assetBCode && b.asset_issuer === assetBIssuer)
@@ -467,14 +468,27 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       console.log('[joinLiquidityPool] Current balances:', { balA, balB });
 
-      // For XLM, account for minimum balance requirement (2 XLM base + reserves)
+      // Check minimum XLM balance - account for future trustline if needed
       const numSubentries = account.subentry_count || 0;
-      const minBalance = (2 + numSubentries * 0.5 + 1); // +1 for safety buffer
-      
+      const futureSubentries = hasPoolShareTrustline ? numSubentries : numSubentries + 1;
+      const minBalance = (2 + futureSubentries * 0.5 + 1);
+
+      console.log('[joinLiquidityPool] Reserve calculation:', {
+        numSubentries,
+        futureSubentries,
+        minBalance,
+        hasPoolShareTrustline,
+        assetACode,
+        assetBCode,
+        maxAmountA,
+        maxAmountB
+      });
+
       if (assetACode === 'XLM') {
         const availableXLM = parseFloat(balA) - minBalance;
+        console.log('[joinLiquidityPool] XLM check for assetA:', { balA, minBalance, availableXLM, needed: maxAmountA });
         if (availableXLM < parseFloat(maxAmountA)) {
-          throw new Error(`Insufficient XLM. Available: ${availableXLM.toFixed(2)} XLM (after reserves)`);
+          throw new Error(`Insufficient XLM. Available: ${availableXLM.toFixed(2)} XLM (after reserves). Need: ${maxAmountA} XLM`);
         }
       } else if (parseFloat(balA) < parseFloat(maxAmountA)) {
         throw new Error(`Insufficient ${assetACode}. Available: ${balA}`);
@@ -482,8 +496,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (assetBCode === 'XLM') {
         const availableXLM = parseFloat(balB) - minBalance;
+        console.log('[joinLiquidityPool] XLM check for assetB:', { balB, minBalance, availableXLM, needed: maxAmountB });
         if (availableXLM < parseFloat(maxAmountB)) {
-          throw new Error(`Insufficient XLM. Available: ${availableXLM.toFixed(2)} XLM (after reserves)`);
+          throw new Error(`Insufficient XLM. Available: ${availableXLM.toFixed(2)} XLM (after reserves). Need: ${maxAmountB} XLM`);
         }
       } else if (parseFloat(balB) < parseFloat(maxAmountB)) {
         throw new Error(`Insufficient ${assetBCode}. Available: ${balB}`);
@@ -492,54 +507,82 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Build transaction
       const kp = Keypair.fromSecret(secretKey);
       const fee = String(await serverRef.current.fetchBaseFee());
-      let builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase });
-      
-      // Check if trustline exists for pool shares
-      const hasPoolShareTrustline = freshBalances.some(b => b.liquidity_pool_id === poolId);
-      console.log('[joinLiquidityPool] Has pool share trustline:', hasPoolShareTrustline);
+      let builder = new TransactionBuilder(account, { 
+        fee, 
+        networkPassphrase: cfg.passphrase 
+      });
 
       if (!hasPoolShareTrustline) {
         console.log('[joinLiquidityPool] Adding pool share trustline...');
-        
-        // Create LiquidityPoolAsset - FIXED: Use correct constructor
-        const LiquidityPoolAsset = (Stellar as any).LiquidityPoolAsset;
-        if (!LiquidityPoolAsset) {
-          throw new Error('LiquidityPoolAsset not available in SDK');
-        }
 
-        // The constructor expects (assetA, assetB, fee) where fee is in basis points (30 = 0.30%)
-        const poolAsset = new LiquidityPoolAsset(assetA, assetB, Stellar.LiquidityPoolFeeV18);
-        
-        builder = builder.addOperation(Operation.changeTrust({
-          asset: poolAsset,
-          limit: '922337203685.4775807' // Max limit
-        }));
+        // Create LiquidityPoolAsset with correct fee parameter
+        const poolAsset = new Stellar.LiquidityPoolAsset(
+          assetA, 
+          assetB, 
+          30  // 30 basis points = 0.30% fee (Stellar's standard fee)
+        );
+
+        builder = builder.addOperation(
+          Operation.changeTrust({
+            asset: poolAsset,
+            limit: '922337203685.4775807' // Max limit
+          })
+        );
+
+        console.log('[joinLiquidityPool] Submitting trustline transaction...');
+        await submitTx(builder, kp);
+        console.log('[joinLiquidityPool] Trustline added successfully');
+
+        // Reload account after trustline is added
+        const updatedAccount = await serverRef.current.loadAccount(publicKey);
+        builder = new TransactionBuilder(updatedAccount, { 
+          fee, 
+          networkPassphrase: cfg.passphrase 
+        });
       }
 
-      // Add liquidityPoolDeposit operation - FIXED: Use correct price format
-      console.log('[joinLiquidityPool] Adding deposit operation...');
+      // Calculate price from the amounts being deposited
+      const depositRatio = parseFloat(canonicalMaxAmountB) / parseFloat(canonicalMaxAmountA);
+      
+      // Set price bounds based on deposit ratio with ±50% tolerance
+      const minPriceValue = depositRatio * 0.5;
+      const maxPriceValue = depositRatio * 1.5;
+      
+      // Convert to fractions with precision
+      const minPrice = { n: Math.floor(minPriceValue * 1000), d: 1000 };
+      const maxPrice = { n: Math.ceil(maxPriceValue * 1000), d: 1000 };
+
+      console.log('[joinLiquidityPool] Price calculation:', { 
+        depositRatio, 
+        minPriceValue, 
+        maxPriceValue,
+        minPrice, 
+        maxPrice 
+      });
+
+      // Add deposit operation
       builder = builder.addOperation(
         Operation.liquidityPoolDeposit({
           liquidityPoolId: poolId,
           maxAmountA: canonicalMaxAmountA,
           maxAmountB: canonicalMaxAmountB,
-          minPrice: { n: 9, d: 10 },  // 0.9 as fraction
-          maxPrice: { n: 11, d: 10 }  // 1.1 as fraction
+          minPrice,
+          maxPrice
         })
       );
 
-      console.log('[joinLiquidityPool] Submitting transaction...');
+      console.log('[joinLiquidityPool] Submitting deposit transaction...');
       await submitTx(builder, kp);
-      console.log('[joinLiquidityPool] Success!');
+      console.log('[joinLiquidityPool] Deposit successful!');
 
     } catch (e: any) {
       console.error('[joinLiquidityPool] Error:', e);
-      
-      // Log full error details for debugging
+
       if (e.response?.data) {
         console.error('[joinLiquidityPool] Horizon error details:', e.response.data);
+        console.error('[joinLiquidityPool] Result codes:', e.response.data.extras?.result_codes);
       }
-      
+
       setError(e.message || 'Failed to join liquidity pool');
       throw e;
     } finally {
@@ -557,21 +600,17 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loading,
     lastUpdated,
     error,
-
     generateWallet,
     importSecret,
     disconnect,
     refresh,
-
     createWallet: generateWallet,
     importWallet: importSecret,
-
     sendPayment,
     sendPaymentLegacy,
     addTrustline,
     removeTrustline,
     joinLiquidityPool,
-
     networkMode,
     setNetworkMode
   };
