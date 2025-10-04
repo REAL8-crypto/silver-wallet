@@ -7,11 +7,11 @@ import { useReal8Pairs } from '../hooks/useReal8Pairs';
 import { formatPrice } from '../hooks/useReal8Stats';
 
 const assets = [
-  { code: 'XLM', label: 'REAL8/XLM' },
-  { code: 'USDC', label: 'REAL8/USDC' },
-  { code: 'EURC', label: 'REAL8/EURC' },
-  { code: 'SLVR', label: 'REAL8/SLVR' },
-  { code: 'GOLD', label: 'REAL8/GOLD' },
+  { code: 'XLM', label: 'XLM/REAL8' },
+  { code: 'USDC', label: 'USDC/REAL8' },
+  { code: 'EURC', label: 'EURC/REAL8' },
+  { code: 'SLVR', label: 'SLVR/REAL8' },
+  { code: 'GOLD', label: 'GOLD/REAL8' },
 ];
 
 const MarketPricesGrid: React.FC<{ prices?: Record<string, number | string> }> = ({ prices }) => {
