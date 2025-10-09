@@ -33,15 +33,14 @@ interface WalletContextValue {
   importSecret: (secret: string) => void;
   disconnect: () => void;
   refresh: () => Promise<void>;
-  // Legacy aliases
   createWallet: () => void;
   importWallet: (secret: string) => void;
   sendPayment: (opts: {
-    destination: string;
-    amount: string;
-    assetCode?: string;
-    issuer?: string;
-    memoText?: string;
+    destination: string,
+    amount: string,
+    assetCode?: string,
+    issuer?: string,
+    memoText?: string
   }) => Promise<void>;
   sendPaymentLegacy: (
     destination: string,
@@ -53,12 +52,19 @@ interface WalletContextValue {
   addTrustline: (assetCode: string, issuer: string, limit?: string) => Promise<void>;
   removeTrustline: (assetCode: string, issuer: string) => Promise<void>;
   joinLiquidityPool: (opts: {
-    assetACode?: string;
-    assetAIssuer?: string;
-    assetBCode?: string;
-    assetBIssuer?: string;
-    maxAmountA: string;
-    maxAmountB: string;
+    assetACode?: string,
+    assetAIssuer?: string,
+    assetBCode?: string,
+    assetBIssuer?: string,
+    maxAmountA: string | { value: string },
+    maxAmountB: string | { value: string },
+    poolId?: string
+  }) => Promise<void>;
+  leaveLiquidityPool: (opts: {
+    poolId: string,
+    sharesAmount: string,
+    minAmountA?: string,
+    minAmountB?: string
   }) => Promise<void>;
   networkMode: NetworkMode;
   setNetworkMode: (mode: NetworkMode) => void;
@@ -73,9 +79,6 @@ function getConfig(mode: NetworkMode) {
     : { url: TESTNET_HORIZON, passphrase: Networks.TESTNET, isTestnet: true };
 }
 
-/**
- * Resolve the Server constructor robustly for both ESM & CJS builds.
- */
 function getServerCtor(S: any): any {
   if (S && typeof S.Server === 'function') return S.Server;
   if (S?.Horizon?.Server && typeof S.Horizon.Server === 'function') return S.Horizon.Server;
@@ -86,18 +89,29 @@ function getServerCtor(S: any): any {
   return null;
 }
 
+// Helper function to parse asset from reserve string
+function parseAssetFromReserve(assetString: string): Asset {
+  if (assetString === 'native') {
+    return Asset.native();
+  }
+  // Format: "CODE:ISSUER"
+  const parts = assetString.split(':');
+  if (parts.length !== 2) {
+    throw new Error(`Invalid asset format: ${assetString}`);
+  }
+  return new Asset(parts[0], parts[1]);
+}
+
 const WalletContext = createContext<WalletContextValue | undefined>(undefined);
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [networkMode, setNetworkMode] = useState<NetworkMode>(
     (localStorage.getItem('NETWORK_MODE') as NetworkMode) || 'testnet'
   );
-
   const cfg = getConfig(networkMode);
   const serverRef = useRef<any | null>(null);
   const serverCtorRef = useRef<any | null>(null);
   const warnedRef = useRef(false);
-
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [secretKey, setSecretKey] = useState<string | null>(null);
   const [balance, setBalance] = useState('0');
@@ -108,7 +122,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [error, setError] = useState<string | null>(null);
   const pollingRef = useRef<number | null>(null);
 
-  // Initialize server when network mode changes
   useEffect(() => {
     localStorage.setItem('NETWORK_MODE', networkMode);
     const ServerCtor = getServerCtor(Stellar);
@@ -123,10 +136,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     serverRef.current = new ServerCtor(cfg.url);
   }, [networkMode, cfg.url]);
 
-  // Load account data
   const loadAccount = useCallback(async () => {
     if (!publicKey || !serverRef.current) return;
-
     try {
       setLoading(true);
       setError(null);
@@ -154,7 +165,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     await loadAccount();
   }, [loadAccount]);
 
-  // Restore secret key on mount
   useEffect(() => {
     const stored = localStorage.getItem('WALLET_SECRET');
     if (stored) {
@@ -168,19 +178,17 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
-  // Load account when public key changes
   useEffect(() => {
     if (publicKey) {
       void loadAccount();
     }
   }, [publicKey, loadAccount]);
 
-  // Polling for account updates
   useEffect(() => {
     if (publicKey && !unfunded) {
       pollingRef.current = window.setInterval(() => {
         void loadAccount();
-      }, 30000); // Poll every 30 seconds
+      }, 30000);
     } else {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
@@ -251,12 +259,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }) => {
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
     if (!serverRef.current) throw new Error('Server not initialized');
-
     setLoading(true);
     setError(null);
-
     try {
-      // Basic validation
       if (!destination || !destination.trim()) throw new Error('Destination required');
       if (!amount || Number.isNaN(Number(amount)) || parseFloat(amount) <= 0) throw new Error('Amount must be > 0');
       if (assetCode && assetCode !== 'XLM' && (!issuer || !issuer.trim())) throw new Error('Issuer required for non-native assets');
@@ -264,8 +269,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const kp = Keypair.fromSecret(secretKey);
       const account = await serverRef.current.loadAccount(publicKey);
       const fee = String(await serverRef.current.fetchBaseFee());
-
-      // Build asset: native XLM vs custom asset
       const asset = (!assetCode || assetCode === 'XLM') ? Asset.native() : new Asset(assetCode, issuer!);
 
       const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
@@ -276,7 +279,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }));
 
       if (memoText && memoText.trim().length) {
-        // Attach memo as text (max 28 chars) — callers should cap length if needed
         builder.addMemo(Stellar.Memo.text(memoText.trim()));
       }
 
@@ -305,26 +307,20 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   ) => {
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
     if (!serverRef.current) throw new Error('Server not initialized');
-
-    // Native XLM doesn't require a trustline
     if (assetCode === 'XLM') {
       throw new Error('XLM is native and does not require a trustline');
     }
-
     try {
       setLoading(true);
       setError(null);
-
       const kp = Keypair.fromSecret(secretKey);
       const account = await serverRef.current.loadAccount(publicKey);
       const fee = String(await serverRef.current.fetchBaseFee());
-
       const asset = new Asset(assetCode, issuer);
 
       const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
         .addOperation(Operation.changeTrust({
           asset,
-          // if limit is a non-empty string, pass it, otherwise undefined so SDK uses default (max)
           limit: limit && limit.length ? limit : undefined
         }));
 
@@ -341,27 +337,24 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const removeTrustline = async (assetCode: string, issuer: string) => {
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
     if (!serverRef.current) throw new Error('Server not initialized');
-
     try {
       setLoading(true);
       setError(null);
-
       const kp = Keypair.fromSecret(secretKey);
       const account = await serverRef.current.loadAccount(publicKey);
       const fee = String(await serverRef.current.fetchBaseFee());
-      
       const asset = new Asset(assetCode, issuer);
 
       const builder = new TransactionBuilder(account, { fee, networkPassphrase: cfg.passphrase })
         .addOperation(Operation.changeTrust({
           asset,
-          limit: '0' // Setting limit to 0 removes the trustline
+          limit: '0'
         }));
 
       await submitTx(builder, kp);
     } catch (e: any) {
       console.error('[removeTrustline] Error:', e);
-      setError(e.message || 'Failed to remove trustline');
+      setError(e?.message || 'Failed to remove trustline');
       throw e;
     } finally {
       setLoading(false);
@@ -374,196 +367,171 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     assetBCode = REAL8.CODE,
     assetBIssuer = REAL8.ISSUER,
     maxAmountA,
-    maxAmountB
+    maxAmountB,
+    poolId
   }: {
     assetACode?: string;
     assetAIssuer?: string;
     assetBCode?: string;
     assetBIssuer?: string;
-    maxAmountA: string;
-    maxAmountB: string;
+    maxAmountA: string | { value: string };
+    maxAmountB: string | { value: string };
+    poolId?: string;
   }) => {
     if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
     if (!serverRef.current) throw new Error('Server not initialized');
-
-    console.log('[joinLiquidityPool] Starting with params:', {
-      assetACode, assetAIssuer, assetBCode, assetBIssuer, maxAmountA, maxAmountB
-    });
 
     try {
       setLoading(true);
       setError(null);
 
-      // Validate amounts
-      if (parseFloat(maxAmountA) <= 0 || parseFloat(maxAmountB) <= 0) {
-        throw new Error('Amounts must be positive');
+      // Normalize amounts
+      let normalizedMaxAmountA: string;
+      let normalizedMaxAmountB: string;
+
+      if (typeof maxAmountA === 'string') {
+        normalizedMaxAmountA = maxAmountA;
+      } else if (maxAmountA && typeof maxAmountA === 'object' && 'value' in maxAmountA && typeof maxAmountA.value === 'string') {
+        normalizedMaxAmountA = maxAmountA.value;
+      } else {
+        throw new Error(`Invalid maxAmountA format: ${JSON.stringify(maxAmountA)}`);
       }
+
+      if (typeof maxAmountB === 'string') {
+        normalizedMaxAmountB = maxAmountB;
+      } else if (maxAmountB && typeof maxAmountB === 'object' && 'value' in maxAmountB && typeof maxAmountB.value === 'string') {
+        normalizedMaxAmountB = maxAmountB.value;
+      } else {
+        throw new Error(`Invalid maxAmountB format: ${JSON.stringify(maxAmountB)}`);
+      }
+
+      // Validate amounts
+      if (isNaN(parseFloat(normalizedMaxAmountA)) || parseFloat(normalizedMaxAmountA) <= 0 ||
+          isNaN(parseFloat(normalizedMaxAmountB)) || parseFloat(normalizedMaxAmountB) <= 0) {
+        throw new Error('Amounts must be positive numbers');
+      }
+
+      // Format amounts to 7 decimal places
+      const formattedMaxAmountA = parseFloat(normalizedMaxAmountA).toFixed(7);
+      const formattedMaxAmountB = parseFloat(normalizedMaxAmountB).toFixed(7);
 
       // Build Asset instances
       const assetA = assetACode === 'XLM' ? Asset.native() : new Asset(assetACode, assetAIssuer);
       const assetB = assetBCode === 'XLM' ? Asset.native() : new Asset(assetBCode, assetBIssuer);
 
-      console.log('[joinLiquidityPool] Assets:', { assetA, assetB });
+      let liquidityPoolId: string;
 
-      // Fetch pool
-      const poolsResponse = await serverRef.current
+      if (poolId && /^[0-9a-f]{64}$/i.test(poolId)) {
+        // Use provided poolId if it's a valid 64-character hex string
+        liquidityPoolId = poolId;
+      } else {
+        // Fetch pool by assets
+        const poolResponse = await serverRef.current
+          .liquidityPools()
+          .forAssets(assetA, assetB)
+          .call();
+
+        if (!poolResponse.records || poolResponse.records.length === 0) {
+          throw new Error(`No liquidity pool found for ${assetA.toString()}/${assetB.toString()}`);
+        }
+        liquidityPoolId = poolResponse.records[0].id;
+      }
+
+      // Fetch pool details
+      const poolResponse = await serverRef.current
         .liquidityPools()
-        .forAssets(assetA, assetB)
+        .liquidityPoolId(liquidityPoolId)
         .call();
 
-      if (!poolsResponse.records || poolsResponse.records.length === 0) {
-        throw new Error('Liquidity pool not found for these assets');
+      if (!poolResponse.reserves || poolResponse.reserves.length !== 2) {
+        throw new Error(`Invalid pool reserves for pool ID ${liquidityPoolId}`);
       }
 
-      const pool = poolsResponse.records[0];
-      const poolId = pool.id;
+      // Parse assets from reserves using our helper function
+      const reserve0Asset = parseAssetFromReserve(poolResponse.reserves[0].asset);
+      const reserve1Asset = parseAssetFromReserve(poolResponse.reserves[1].asset);
 
-      console.log('[joinLiquidityPool] Found pool:', poolId);
-      console.log('[joinLiquidityPool] Pool reserves:', pool.reserves);
+      const assetAMatches = reserve0Asset.equals(assetA);
+      let canonicalMaxAmountA = assetAMatches ? formattedMaxAmountA : formattedMaxAmountB;
+      let canonicalMaxAmountB = assetAMatches ? formattedMaxAmountB : formattedMaxAmountA;
 
-      // Determine canonical order from pool reserves
-      const reserve0Asset = pool.reserves[0].asset;
-      let canonicalMaxAmountA, canonicalMaxAmountB;
+      // Calculate price from deposit amounts (not from reserves)
+      const exactPrice = parseFloat(canonicalMaxAmountA) / parseFloat(canonicalMaxAmountB);
+      const slippage = 0.10; // 10% tolerance (standard)
+      const minPrice = (exactPrice - (exactPrice * slippage)).toFixed(7);
+      const maxPrice = (exactPrice + (exactPrice * slippage)).toFixed(7);
 
-      const assetAMatches = 
-        (reserve0Asset === 'native' && assetACode === 'XLM') ||
-        (reserve0Asset !== 'native' && 
-         reserve0Asset.includes(assetACode) && 
-         reserve0Asset.includes(assetAIssuer));
-
-      if (assetAMatches) {
-        canonicalMaxAmountA = maxAmountA;
-        canonicalMaxAmountB = maxAmountB;
-      } else {
-        canonicalMaxAmountA = maxAmountB;
-        canonicalMaxAmountB = maxAmountA;
-      }
-
-      console.log('[joinLiquidityPool] Canonical amounts:', { 
-        canonicalMaxAmountA, 
-        canonicalMaxAmountB 
-      });
-
-      // Load fresh account
+      // Load account
       const account = await serverRef.current.loadAccount(publicKey);
       const freshBalances: BalanceLine[] = account.balances;
 
-      // Check for pool share trustline
+      // Check pool share trustline
       const hasPoolShareTrustline = freshBalances.some(
-        b => b.liquidity_pool_id === poolId
+        b => b.liquidity_pool_id === liquidityPoolId
       );
 
-      console.log('[joinLiquidityPool] Has pool share trustline:', hasPoolShareTrustline);
-
       // Validate balances
-      const balA = freshBalances.find(b => 
-        (assetACode === 'XLM' && b.asset_type === 'native') || 
-        (assetACode !== 'XLM' && b.asset_code === assetACode && b.asset_issuer === assetAIssuer)
+      const balA = freshBalances.find(b =>
+        (assetACode === 'XLM' && b.asset_type === 'native') ||
+        (b.asset_code === assetACode && b.asset_issuer === assetAIssuer)
       )?.balance || '0';
 
-      const balB = freshBalances.find(b => 
-        (assetBCode === 'XLM' && b.asset_type === 'native') || 
-        (assetBCode !== 'XLM' && b.asset_code === assetBCode && b.asset_issuer === assetBIssuer)
+      const balB = freshBalances.find(b =>
+        (assetBCode === 'XLM' && b.asset_type === 'native') ||
+        (b.asset_code === assetBCode && b.asset_issuer === assetBIssuer)
       )?.balance || '0';
 
-      console.log('[joinLiquidityPool] Current balances:', { balA, balB });
-
-      // Check minimum XLM balance - account for future trustline if needed
+      // Check minimum XLM balance
       const numSubentries = account.subentry_count || 0;
       const futureSubentries = hasPoolShareTrustline ? numSubentries : numSubentries + 1;
       const minBalance = (2 + futureSubentries * 0.5 + 1);
 
-      console.log('[joinLiquidityPool] Reserve calculation:', {
-        numSubentries,
-        futureSubentries,
-        minBalance,
-        hasPoolShareTrustline,
-        assetACode,
-        assetBCode,
-        maxAmountA,
-        maxAmountB
-      });
-
-      if (assetACode === 'XLM') {
-        const availableXLM = parseFloat(balA) - minBalance;
-        console.log('[joinLiquidityPool] XLM check for assetA:', { balA, minBalance, availableXLM, needed: maxAmountA });
-        if (availableXLM < parseFloat(maxAmountA)) {
-          throw new Error(`Insufficient XLM. Available: ${availableXLM.toFixed(2)} XLM (after reserves). Need: ${maxAmountA} XLM`);
-        }
-      } else if (parseFloat(balA) < parseFloat(maxAmountA)) {
+      if (assetACode === 'XLM' && parseFloat(balA) < parseFloat(formattedMaxAmountA) + minBalance) {
+        throw new Error(`Insufficient XLM. Available: ${(parseFloat(balA) - minBalance).toFixed(7)}, Needed: ${formattedMaxAmountA}`);
+      } else if (assetACode !== 'XLM' && parseFloat(balA) < parseFloat(formattedMaxAmountA)) {
         throw new Error(`Insufficient ${assetACode}. Available: ${balA}`);
       }
 
-      if (assetBCode === 'XLM') {
-        const availableXLM = parseFloat(balB) - minBalance;
-        console.log('[joinLiquidityPool] XLM check for assetB:', { balB, minBalance, availableXLM, needed: maxAmountB });
-        if (availableXLM < parseFloat(maxAmountB)) {
-          throw new Error(`Insufficient XLM. Available: ${availableXLM.toFixed(2)} XLM (after reserves). Need: ${maxAmountB} XLM`);
-        }
-      } else if (parseFloat(balB) < parseFloat(maxAmountB)) {
+      if (assetBCode === 'XLM' && parseFloat(balB) < parseFloat(formattedMaxAmountB) + minBalance) {
+        throw new Error(`Insufficient XLM. Available: ${(parseFloat(balB) - minBalance).toFixed(7)}, Needed: ${formattedMaxAmountB}`);
+      } else if (assetBCode !== 'XLM' && parseFloat(balB) < parseFloat(formattedMaxAmountB)) {
         throw new Error(`Insufficient ${assetBCode}. Available: ${balB}`);
       }
 
       // Build transaction
       const kp = Keypair.fromSecret(secretKey);
       const fee = String(await serverRef.current.fetchBaseFee());
-      let builder = new TransactionBuilder(account, { 
-        fee, 
-        networkPassphrase: cfg.passphrase 
+
+      let builder = new TransactionBuilder(account, {
+        fee,
+        networkPassphrase: cfg.passphrase
       });
 
       if (!hasPoolShareTrustline) {
-        console.log('[joinLiquidityPool] Adding pool share trustline...');
-
-        // Create LiquidityPoolAsset with correct fee parameter
         const poolAsset = new Stellar.LiquidityPoolAsset(
-          assetA, 
-          assetB, 
-          30  // 30 basis points = 0.30% fee (Stellar's standard fee)
+          reserve0Asset,
+          reserve1Asset,
+          30
         );
-
         builder = builder.addOperation(
           Operation.changeTrust({
             asset: poolAsset,
-            limit: '922337203685.4775807' // Max limit
+            limit: '922337203685.4775807'
           })
         );
-
-        console.log('[joinLiquidityPool] Submitting trustline transaction...');
         await submitTx(builder, kp);
-        console.log('[joinLiquidityPool] Trustline added successfully');
 
-        // Reload account after trustline is added
         const updatedAccount = await serverRef.current.loadAccount(publicKey);
-        builder = new TransactionBuilder(updatedAccount, { 
-          fee, 
-          networkPassphrase: cfg.passphrase 
+        builder = new TransactionBuilder(updatedAccount, {
+          fee,
+          networkPassphrase: cfg.passphrase
         });
       }
-
-      // Calculate price from the amounts being deposited
-      const depositRatio = parseFloat(canonicalMaxAmountB) / parseFloat(canonicalMaxAmountA);
-      
-      // Set price bounds based on deposit ratio with ±50% tolerance
-      const minPriceValue = depositRatio * 0.5;
-      const maxPriceValue = depositRatio * 1.5;
-      
-      // Convert to fractions with precision
-      const minPrice = { n: Math.floor(minPriceValue * 1000), d: 1000 };
-      const maxPrice = { n: Math.ceil(maxPriceValue * 1000), d: 1000 };
-
-      console.log('[joinLiquidityPool] Price calculation:', { 
-        depositRatio, 
-        minPriceValue, 
-        maxPriceValue,
-        minPrice, 
-        maxPrice 
-      });
 
       // Add deposit operation
       builder = builder.addOperation(
         Operation.liquidityPoolDeposit({
-          liquidityPoolId: poolId,
+          liquidityPoolId,
           maxAmountA: canonicalMaxAmountA,
           maxAmountB: canonicalMaxAmountB,
           minPrice,
@@ -571,20 +539,133 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         })
       );
 
-      console.log('[joinLiquidityPool] Submitting deposit transaction...');
       await submitTx(builder, kp);
-      console.log('[joinLiquidityPool] Deposit successful!');
-
     } catch (e: any) {
       console.error('[joinLiquidityPool] Error:', e);
-
       if (e.response?.data) {
         console.error('[joinLiquidityPool] Horizon error details:', e.response.data);
         console.error('[joinLiquidityPool] Result codes:', e.response.data.extras?.result_codes);
       }
+      const errorMessage = e.message || 'Failed to join liquidity pool';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      setError(e.message || 'Failed to join liquidity pool');
-      throw e;
+  const leaveLiquidityPool = async ({
+    poolId,
+    sharesAmount,
+    minAmountA,
+    minAmountB
+  }: {
+    poolId: string;
+    sharesAmount: string;
+    minAmountA?: string;
+    minAmountB?: string;
+  }) => {
+    if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
+    if (!serverRef.current) throw new Error('Server not initialized');
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Validate pool ID
+      if (!poolId || !/^[0-9a-f]{64}$/i.test(poolId)) {
+        throw new Error('Invalid liquidity pool ID');
+      }
+
+      // Validate shares amount
+      const sharesNum = parseFloat(sharesAmount);
+      if (isNaN(sharesNum) || sharesNum <= 0) {
+        throw new Error('Shares amount must be a positive number');
+      }
+
+      // Format shares amount to 7 decimal places
+      const formattedSharesAmount = sharesNum.toFixed(7);
+
+      // Fetch pool details to calculate minimum amounts if not provided
+      const poolResponse = await serverRef.current
+        .liquidityPools()
+        .liquidityPoolId(poolId)
+        .call();
+
+      if (!poolResponse.reserves || poolResponse.reserves.length !== 2) {
+        throw new Error(`Invalid pool reserves for pool ID ${poolId}`);
+      }
+
+      const totalShares = parseFloat(poolResponse.total_shares);
+
+      // Calculate minimum amounts with 5% slippage tolerance if not provided
+      let calculatedMinAmountA: string;
+      let calculatedMinAmountB: string;
+
+      if (minAmountA && minAmountB) {
+        calculatedMinAmountA = parseFloat(minAmountA).toFixed(7);
+        calculatedMinAmountB = parseFloat(minAmountB).toFixed(7);
+      } else {
+        const reserveAAmount = parseFloat(poolResponse.reserves[0].amount);
+        const reserveBAmount = parseFloat(poolResponse.reserves[1].amount);
+        
+        // Calculate proportional withdrawal amounts
+        const shareRatio = sharesNum / totalShares;
+        const expectedAmountA = shareRatio * reserveAAmount;
+        const expectedAmountB = shareRatio * reserveBAmount;
+        
+        // Apply 5% slippage tolerance (accept 95% of expected)
+        calculatedMinAmountA = (expectedAmountA * 0.95).toFixed(7);
+        calculatedMinAmountB = (expectedAmountB * 0.95).toFixed(7);
+      }
+
+      // Load account
+      const account = await serverRef.current.loadAccount(publicKey);
+
+      // Check if user has pool shares
+      const freshBalances: BalanceLine[] = account.balances;
+      const poolBalance = freshBalances.find(
+        b => b.asset_type === 'liquidity_pool_shares' && b.liquidity_pool_id === poolId
+      );
+
+      if (!poolBalance) {
+        throw new Error('You do not have shares in this liquidity pool');
+      }
+
+      const availableShares = parseFloat(poolBalance.balance);
+      if (sharesNum > availableShares) {
+        throw new Error(`Insufficient pool shares. Available: ${availableShares}, Requested: ${sharesNum}`);
+      }
+
+      // Build transaction
+      const kp = Keypair.fromSecret(secretKey);
+      const fee = String(await serverRef.current.fetchBaseFee());
+
+      const builder = new TransactionBuilder(account, {
+        fee,
+        networkPassphrase: cfg.passphrase
+      });
+
+      // Add withdraw operation
+      builder.addOperation(
+        Operation.liquidityPoolWithdraw({
+          liquidityPoolId: poolId,
+          amount: formattedSharesAmount,
+          minAmountA: calculatedMinAmountA,
+          minAmountB: calculatedMinAmountB
+        })
+      );
+
+      await submitTx(builder, kp);
+    } catch (e: any) {
+      console.error('[leaveLiquidityPool] Error:', e);
+      if (e.response?.data) {
+        console.error('[leaveLiquidityPool] Horizon error details:', e.response.data);
+        console.error('[leaveLiquidityPool] Result codes:', e.response.data.extras?.result_codes);
+      }
+      const errorMessage = e.message || 'Failed to leave liquidity pool';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -611,6 +692,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     addTrustline,
     removeTrustline,
     joinLiquidityPool,
+    leaveLiquidityPool,
     networkMode,
     setNetworkMode
   };

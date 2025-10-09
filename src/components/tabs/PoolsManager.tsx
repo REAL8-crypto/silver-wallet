@@ -22,6 +22,7 @@ import { PoolStatistics } from '../pools/PoolStatistics';
 import { PoolsList } from '../pools/PoolsList';
 import { AdvancedTools } from '../pools/AdvancedTools';
 import { PoolOperationDialog } from '../pools/PoolOperationDialog';
+import LeavePoolDialog from '../dialogs/LeavePoolDialog';
 import { usePoolDiscovery } from '../../hooks/usePoolDiscovery';
 import type { PoolDef, PoolDialogData } from '../../types/pools';
 
@@ -33,13 +34,15 @@ const PoolsManager: React.FC<PoolsManagerProps> = ({ onNavigateToTab }) => {
   console.log('POOLS_MANAGER_MOUNTED', new Date().toISOString());
   
   const { i18n } = useTranslation();
-  const { publicKey, joinLiquidityPool, networkMode, balances } = useWallet();
+  const { publicKey, joinLiquidityPool, leaveLiquidityPool, networkMode, balances } = useWallet();
   const isSpanish = i18n.language.startsWith('es');
   
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [pools, setPools] = useState<PoolDef[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  const [selectedPoolForWithdraw, setSelectedPoolForWithdraw] = useState<PoolDef | null>(null);
   const [dialogData, setDialogData] = useState<PoolDialogData>({
     poolId: '',
     action: 'join',
@@ -56,6 +59,7 @@ const PoolsManager: React.FC<PoolsManagerProps> = ({ onNavigateToTab }) => {
     message: '',
     severity: 'info'
   });
+  
   const serverRef = React.useRef<StellarSdk.Horizon.Server | null>(null);
   
   React.useEffect(() => {
@@ -79,6 +83,7 @@ const PoolsManager: React.FC<PoolsManagerProps> = ({ onNavigateToTab }) => {
       
       try {
         const realPools = await discoverLiquidityPools();
+        console.log('[PoolsManager] Discovered pools:', realPools);
         setPools(realPools);
         
       } catch (error) {
@@ -100,6 +105,7 @@ const PoolsManager: React.FC<PoolsManagerProps> = ({ onNavigateToTab }) => {
     try {
       setRefreshing(true);
       const discoveredPools = await discoverLiquidityPools();
+      console.log('[PoolsManager] Refreshed pools:', discoveredPools);
       setPools(discoveredPools);
       
       setSnackbar({
@@ -147,7 +153,8 @@ const PoolsManager: React.FC<PoolsManagerProps> = ({ onNavigateToTab }) => {
             assetBCode: pool.assetB.code,
             assetBIssuer: pool.assetB.issuer ?? '',
             maxAmountA: dialogData.amountA,
-            maxAmountB: dialogData.amountB
+            maxAmountB: dialogData.amountB,
+            poolId: pool.liquidityPoolId
           });
           
           await fetchPoolData();
@@ -155,20 +162,14 @@ const PoolsManager: React.FC<PoolsManagerProps> = ({ onNavigateToTab }) => {
           setSnackbar({
             open: true,
             message: isSpanish 
-              ? `Liquidez agregada al Fondo ${pool.poolId}` 
-              : `Successfully added liquidity to ${pool.poolId} pool`,
+              ? `Liquidez agregada al Fondo ${pool.assetA.code}/${pool.assetB.code}` 
+              : `Successfully added liquidity to ${pool.assetA.code}/${pool.assetB.code} pool`,
             severity: 'success'
           });
           break;
           
         case 'remove':
-          setSnackbar({
-            open: true,
-            message: isSpanish 
-              ? 'Funcionalidad de retiro en desarrollo' 
-              : 'Withdraw functionality in development',
-            severity: 'info'
-          });
+          // This shouldn't be called anymore since we're using the separate withdraw dialog
           break;
       }
       
@@ -187,14 +188,39 @@ const PoolsManager: React.FC<PoolsManagerProps> = ({ onNavigateToTab }) => {
   };
   
   const openPoolDialog = (poolId: string, action: 'join' | 'add' | 'remove') => {
-    setDialogData({
-      poolId,
-      action,
-      amountA: '',
-      amountB: '',
-      slippage: '0.5'
+    const pool = pools.find(p => p.poolId === poolId);
+    
+    if (action === 'remove' && pool) {
+      // Open the withdraw dialog instead
+      setSelectedPoolForWithdraw(pool);
+      setWithdrawDialogOpen(true);
+    } else {
+      // Open the add/join dialog
+      setDialogData({
+        poolId,
+        action,
+        amountA: '',
+        amountB: '',
+        slippage: '0.5'
+      });
+      setDialogOpen(true);
+    }
+  };
+  
+  const handleWithdrawSuccess = async () => {
+    setWithdrawDialogOpen(false);
+    setSelectedPoolForWithdraw(null);
+    
+    // Refresh pool data
+    await fetchPoolData();
+    
+    setSnackbar({
+      open: true,
+      message: isSpanish 
+        ? 'Liquidez retirada exitosamente' 
+        : 'Successfully withdrew liquidity',
+      severity: 'success'
     });
-    setDialogOpen(true);
   };
   
   const updateDialogData = (updates: Partial<PoolDialogData>) => {
@@ -207,7 +233,15 @@ const PoolsManager: React.FC<PoolsManagerProps> = ({ onNavigateToTab }) => {
   
   const currentPool = pools.find(p => p.poolId === dialogData.poolId);
   
-  if (loading) {
+  // Get user's pool shares for the selected pool
+  const userPoolShares = selectedPoolForWithdraw?.liquidityPoolId 
+    ? balances.find(b => 
+        b.asset_type === 'liquidity_pool_shares' && 
+        b.liquidity_pool_id === selectedPoolForWithdraw.liquidityPoolId
+      )?.balance || '0'
+    : '0';
+  
+  if (loading && pools.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
         <CircularProgress />
@@ -267,6 +301,7 @@ const PoolsManager: React.FC<PoolsManagerProps> = ({ onNavigateToTab }) => {
         {publicKey && <AdvancedTools isSpanish={isSpanish} />}
       </Stack>
       
+      {/* Add Liquidity Dialog */}
       <PoolOperationDialog
         open={dialogOpen}
         dialogData={dialogData}
@@ -277,6 +312,20 @@ const PoolsManager: React.FC<PoolsManagerProps> = ({ onNavigateToTab }) => {
         onConfirm={handlePoolOperation}
         onDataChange={updateDialogData}
       />
+      
+      {/* Withdraw Liquidity Dialog */}
+      {selectedPoolForWithdraw && (
+        <LeavePoolDialog
+          open={withdrawDialogOpen}
+          onClose={() => {
+            setWithdrawDialogOpen(false);
+            setSelectedPoolForWithdraw(null);
+          }}
+          poolId={selectedPoolForWithdraw.liquidityPoolId || ''}
+          poolName={`${selectedPoolForWithdraw.assetA.code}/${selectedPoolForWithdraw.assetB.code}`}
+          availableShares={userPoolShares}
+        />
+      )}
       
       <Snackbar
         open={snackbar.open}

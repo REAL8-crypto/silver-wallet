@@ -3,6 +3,7 @@ import { Box, Typography, Chip, Button, Alert } from '@mui/material';
 import { 
   Pool as PoolIcon, 
   Add as AddIcon,
+  Remove as RemoveIcon,
   TrendingUp as RewardsIcon,
   Warning as WarningIcon
 } from '@mui/icons-material';
@@ -28,7 +29,7 @@ export const PoolCard: React.FC<PoolCardProps> = ({
   const { missingTrustlines, getAllMissingAssetCodes } = useTrustlineCheck(balances);
   
   const sharePercentage = getPoolSharePercentage(pool.userShare, pool.totalShares);
-
+  
   // Check for missing trustlines
   const poolAssets = [
     { code: pool.assetA.code, issuer: pool.assetA.issuer },
@@ -39,12 +40,17 @@ export const PoolCard: React.FC<PoolCardProps> = ({
   const missingAssetCodes = getAllMissingAssetCodes(poolAssets);
   const canJoinPool = missing.length === 0 && !!publicKey;
   const hasMissingTrustlines = missing.length > 0 && !!publicKey;
+  const hasShares = pool.userShare > 0;
 
-  const handleAction = () => {
+  const handleAddAction = () => {
     if (hasMissingTrustlines) {
       return;
     }
-    onAction(pool.poolId, pool.userShare > 0 ? 'add' : 'join');
+    onAction(pool.poolId, hasShares ? 'add' : 'join');
+  };
+
+  const handleRemoveAction = () => {
+    onAction(pool.poolId, 'remove');
   };
 
   return (
@@ -122,22 +128,40 @@ export const PoolCard: React.FC<PoolCardProps> = ({
             <Typography variant="caption" color="text.secondary" display="block">
               {isSpanish ? 'Tu Participación' : 'Your Share'}
             </Typography>
-            <Typography variant="body2">
-              {pool.userShare > 0 ? `${sharePercentage.toFixed(4)}%` : '0%'}
+            <Typography variant="body2" fontWeight={hasShares ? 600 : 400}>
+              {hasShares ? `${sharePercentage.toFixed(4)}%` : '0%'}
             </Typography>
           </Box>
         </Box>
         
-        {/* Action Button - Full width on mobile, auto width on larger screens */}
+        {/* Action Buttons - Show both Add and Withdraw if user has shares */}
         <Box sx={{ 
           display: 'flex',
-          justifyContent: { xs: 'stretch', sm: 'flex-end' }
+          gap: 1,
+          justifyContent: { xs: 'stretch', sm: 'flex-end' },
+          flexDirection: { xs: 'column', sm: 'row' }
         }}>
+          {hasShares && (
+            <Button
+              variant="outlined"
+              size="small"
+              color="error"
+              startIcon={<RemoveIcon />}
+              onClick={handleRemoveAction}
+              sx={{ 
+                width: { xs: '100%', sm: 'auto' },
+                minWidth: { sm: 120 } 
+              }}
+            >
+              {isSpanish ? 'Retirar' : 'Withdraw'}
+            </Button>
+          )}
+          
           <Button
-            variant={pool.userShare > 0 ? 'outlined' : 'contained'}
+            variant={hasShares ? 'outlined' : 'contained'}
             size="small"
             startIcon={hasMissingTrustlines ? <WarningIcon /> : <AddIcon />}
-            onClick={handleAction}
+            onClick={handleAddAction}
             disabled={!canJoinPool || hasMissingTrustlines}
             color={hasMissingTrustlines ? 'warning' : 'primary'}
             sx={{ 
@@ -145,7 +169,7 @@ export const PoolCard: React.FC<PoolCardProps> = ({
               minWidth: { sm: 120 } 
             }}
           >
-            {pool.userShare > 0
+            {hasShares
               ? (isSpanish ? 'Agregar' : 'Add More')
               : (isSpanish ? 'Unirse' : 'Join Pool')
             }
@@ -191,4 +215,4 @@ export const PoolCard: React.FC<PoolCardProps> = ({
       )}
     </Box>
   );
-}
+};

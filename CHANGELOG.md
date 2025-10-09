@@ -2,6 +2,78 @@
 
 All notable changes to the REAL8 Stellar Wallet project will be documented in this file.
 
+## [2.2.8] - 20251009
+
+### Added
+- **Liquidity Pool Withdrawal System**
+  - Complete withdraw/leave liquidity pool functionality
+  - New `LeavePoolDialog` component with intuitive slider interface
+  - Percentage-based withdrawal (0-100%) with visual slider controls
+  - "Max" button for quick full withdrawal
+  - Automatic calculation of proportional asset amounts
+  - Real-time display of available pool shares
+  - 5% slippage tolerance for withdrawals
+
+- **Enhanced Pool Management UI**
+  - "Withdraw" button appears when user has shares in a pool
+  - Color-coded buttons: red for withdraw, blue for add/join
+  - Side-by-side action buttons for pools with user participation
+  - Separate dialogs for deposit and withdrawal operations
+  - Auto-refresh pool data after successful operations
+
+- **WalletContext Enhancements**
+  - New `leaveLiquidityPool` function for pool withdrawals
+  - Automatic minimum amount calculation with slippage protection
+  - Pool share validation before withdrawal
+  - Proportional asset distribution based on pool reserves
+  - Comprehensive error handling and balance checks
+
+### Changed
+- **Pool Operation Flow**
+  - Split pool operations into dedicated dialogs (join/add vs. withdraw)
+  - Improved user feedback with action-specific success messages
+  - Enhanced `PoolCard` to show both add and withdraw options
+  - Better state management in `PoolsManager` for multiple dialogs
+
+### Fixed
+- **Price Calculation for Pool Deposits**
+  - Fixed `op_bad_price` error by calculating price from deposit amounts instead of pool reserves
+  - Updated price calculation: `exactPrice = maxAmountA / maxAmountB`
+  - Reduced slippage tolerance from 15% to 10% (industry standard)
+  - Added proper price bounds for `liquidityPoolDeposit` operation
+
+- **Asset Parsing in Pool Operations**
+  - Replaced problematic `Asset.fromOperation()` with custom `parseAssetFromReserve()` helper
+  - Fixed `e.switch is not a function` error
+  - Proper handling of native assets and issued assets from Horizon API
+  - Correct parsing of asset strings in format "CODE:ISSUER"
+
+### Technical
+- Enhanced TypeScript interfaces for pool withdrawal operations
+- Added `leaveLiquidityPool` to `WalletContextValue` type
+- Improved error logging for pool operations with Horizon error details
+- Better separation of concerns between join and leave pool workflows
+- Proper cleanup of dialog state on open/close
+
+## [2.2.7] - 20251009
+
+### Fixed
+- **Liquidity Pool Joining Error**
+  - Resolved `REAL8:GBVYY.../XLM does not look like a liquidity pool ID` error in `PoolsManager.tsx` by using `pool.liquidityPoolId` (hexadecimal pool ID) instead of `pool.poolId` (asset pair string) in `joinLiquidityPool` calls.
+  - Updated `WalletContext.tsx` to handle both `poolId` (hex) and asset-based inputs for `joinLiquidityPool`, fetching pool by assets if `poolId` is invalid or absent.
+  - Removed unnecessary `poolId` prop from `JoinPoolDialog` in `WalletDashboard.tsx`, aligning with `JoinPoolDialogProps` interface.
+
+### Changed
+- **Liquidity Pool Handling**
+  - Enhanced `joinLiquidityPool` in `WalletContext.tsx` to validate `poolId` as a 64-character hex string or fallback to asset-based pool lookup using `serverRef.current.liquidityPools().forAssets()`.
+  - Improved error handling in `PoolsManager.tsx` with better snackbar messages for pool operation failures.
+  - Ensured `PoolOperationDialog` in `PoolsManager.tsx` uses correct `liquidityPoolId` from `PoolDef` for consistent pool operations.
+
+### Technical
+- Improved TypeScript types in `WalletContext.tsx` for `joinLiquidityPool` parameters to support optional `poolId`.
+- Added logging in `joinLiquidityPool` for debugging pool lookup and transaction submission.
+- Ensured compatibility between `JoinPoolDialog` (asset-based) and `PoolOperationDialog` (pool ID-based) workflows.
+
 ## [2.2.6] - 20251003
 
 ### Added

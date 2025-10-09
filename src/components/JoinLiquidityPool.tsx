@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { useWallet } from '../contexts/WalletContext';
-const JoinLiquidityPool: React.FC = () => {
+
+interface JoinLiquidityPoolProps {
+  poolId: string; // Added to receive pool ID
+}
+
+const JoinLiquidityPool: React.FC<JoinLiquidityPoolProps> = ({ poolId }) => {
   const { balances, joinLiquidityPool, loading } = useWallet();
   const [assetA, setAssetA] = useState<string>('XLM');
-  const [assetB, setAssetB] = useState<string>('');
+  const [assetB, setAssetB] = useState<string>('REAL8');
   const [amountA, setAmountA] = useState<string>('');
   const [amountB, setAmountB] = useState<string>('');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -26,14 +31,14 @@ const JoinLiquidityPool: React.FC = () => {
     }
     setSubmitting(true);
     try {
-      // Use correct API interface
       await joinLiquidityPool({
         assetACode: a.code,
         assetAIssuer: a.code === 'XLM' ? '' : a.issuer,
         assetBCode: b.code,
         assetBIssuer: b.code === 'XLM' ? '' : b.issuer,
         maxAmountA: amountA,
-        maxAmountB: amountB
+        maxAmountB: amountB,
+        poolId // Added poolId
       });
       setAmountA('');
       setAmountB('');
