@@ -33,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import { REAL8 } from '../../constants/real8Asset';
 import TransferDialog from '../dialogs/TransferDialog';
+import SwapDialog from '../dialogs/SwapDialog'; // Import the new SwapDialog
 
 // Import asset icons
 import real8Icon from '../../assets/icons/real8-icon.jpg';
@@ -145,6 +146,9 @@ const AssetsManager: React.FC = () => {
     assetIssuer: null
   });
 
+  // Swap dialog state
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+
   const handleAddTrustline = async (assetCode: string, issuer: string) => {
     try {
       setError(null);
@@ -208,8 +212,7 @@ const AssetsManager: React.FC = () => {
   };
 
   const handleSwap = () => {
-    // TODO: Implement swap functionality or redirect to swap interface
-    console.log('Swap functionality to be implemented');
+    setSwapDialogOpen(true); // Open the swap dialog
   };
 
   // Get asset balances (excluding native XLM)
@@ -601,6 +604,12 @@ const AssetsManager: React.FC = () => {
         onClose={handleCloseTransfer}
         defaultAssetCode={transferState.assetCode}
         defaultAssetIssuer={transferState.assetIssuer}
+      />
+
+      {/* Swap Dialog */}
+      <SwapDialog
+        open={swapDialogOpen}
+        onClose={() => setSwapDialogOpen(false)}
       />
     </Box>
   );

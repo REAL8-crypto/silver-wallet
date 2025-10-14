@@ -105,9 +105,9 @@ function parseAssetFromReserve(assetString: string): Asset {
 const WalletContext = createContext<WalletContextValue | undefined>(undefined);
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [networkMode, setNetworkMode] = useState<NetworkMode>(
-    (localStorage.getItem('NETWORK_MODE') as NetworkMode) || 'testnet'
-  );
+const [networkMode, setNetworkMode] = useState<NetworkMode>(
+  (localStorage.getItem('NETWORK_MODE') as NetworkMode) || 'public'
+);
   const cfg = getConfig(networkMode);
   const serverRef = useRef<any | null>(null);
   const serverCtorRef = useRef<any | null>(null);
