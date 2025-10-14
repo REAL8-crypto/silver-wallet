@@ -5,7 +5,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { REAL8 } from '../constants/real8Asset';
 import { useWallet } from '../contexts/WalletContext';
-import { useReal8Stats, formatNumber } from '../hooks/useReal8Stats';
 
 interface Real8FeaturedCardProps {
   onSend: () => void;
@@ -26,38 +25,14 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const { balances, unfunded } = useWallet();
-  const stats = useReal8Stats();
 
   const trustline = balances.find(b => b.asset_code === REAL8.CODE);
   const hasTrustline = !!trustline;
   const balance = trustline?.balance || '0';
 
-  // Updated stat definitions as requested
-  const statDefinitions = [
-    {
-      key: 'totalSupply',
-      label: 'TOTAL SUPPLY',
-      value: formatNumber(stats.totalSupply)
-    },
-    {
-      key: 'circulating',
-      label: 'CIRCULATING',
-      value: formatNumber(stats.totalSupply) // Same as total supply
-    },
-    {
-      key: 'trustlines',
-      label: 'TRUSTLINES',
-      value: '163 / 155'
-    },
-    {
-      key: 'totalTrades',
-      label: 'TOTAL TRADES',
-      value: '8,559'
-    }
-  ];
-
   let statusLabel = 'Active';
   let statusColor: 'default' | 'warning' | 'success' = 'success';
+
   if (!hasTrustline) {
     statusLabel = t('trustlineMissing');
     statusColor = 'warning';
@@ -96,8 +71,8 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
         }}
       />
       
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
-        <Box sx={{ flex: 1 }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} alignItems="center" justifyContent="center">
+        <Box sx={{ minWidth: 0, flex: { xs: 'none', md: '1 1 auto' }, maxWidth: { md: '50%' } }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
             <Chip
               size="small"
@@ -215,56 +190,46 @@ const Real8FeaturedCard: React.FC<Real8FeaturedCardProps> = ({
           </Stack>
         </Box>
         
-        {/* Stats grid on the right */}
+        {/* REAL8 Logo */}
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: { xs: 1, sm: 1.25 },
-            maxWidth: 420,
-            alignSelf: 'stretch'
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
           }}
         >
-          {statDefinitions.map((stat) => (
-            <Paper
-              key={stat.key}
-              variant="outlined"
-              elevation={0}
-              sx={{
-                borderColor: 'rgba(255,255,255,0.5)',
-                background: 'transparent',
-                p: { xs: 1, sm: 1.25 }
+          <Box
+            component="a"
+            href="https://real8.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'transform 0.2s ease, opacity 0.2s ease',
+              '&:hover': {
+                transform: 'scale(1.05)',
+                opacity: 0.85
+              }
+            }}
+          >
+            <Box
+              component="img"
+              src="/Logo-REAL8-512x512.png"
+              alt="REAL8 Logo"
+              onError={(e) => {
+                console.error('Failed to load REAL8 logo from public folder');
               }}
-            >
-              <Typography
-                variant="caption"
-                sx={{
-                  textTransform: 'uppercase',
-                  fontWeight: 600,
-                  letterSpacing: 0.6,
-                  color: 'white',
-                  opacity: 0.9
-                }}
-              >
-                {stat.label}
-              </Typography>
-              <Typography
-                variant="h6"
-                sx={{
-                  color: 'white',
-                  lineHeight: 1.15,
-                  fontWeight: 500,
-                  wordWrap: 'break-word',
-                  // Smaller font size for large numbers to prevent wrapping
-                  fontSize: stat.key === 'totalSupply' || stat.key === 'circulating' 
-                    ? { xs: '0.85rem', sm: '1rem' } 
-                    : undefined
-                }}
-              >
-                {stat.value}
-              </Typography>
-            </Paper>
-          ))}
+              sx={{
+                width: { xs: 120, sm: 150, md: 180 },
+                height: 'auto',
+                opacity: 0.9,
+                filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))'
+              }}
+            />
+          </Box>
         </Box>
       </Stack>
     </Paper>
