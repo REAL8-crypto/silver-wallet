@@ -66,6 +66,14 @@ interface WalletContextValue {
     minAmountA?: string,
     minAmountB?: string
   }) => Promise<void>;
+  swapAssets: (opts: {
+    sourceAssetCode: string;
+    sourceAssetIssuer: string | null;
+    destAssetCode: string;
+    destAssetIssuer: string | null;
+    sendAmount: string;
+    destMin: string;
+  }) => Promise<void>;
   networkMode: NetworkMode;
   setNetworkMode: (mode: NetworkMode) => void;
 }
@@ -89,12 +97,10 @@ function getServerCtor(S: any): any {
   return null;
 }
 
-// Helper function to parse asset from reserve string
 function parseAssetFromReserve(assetString: string): Asset {
   if (assetString === 'native') {
     return Asset.native();
   }
-  // Format: "CODE:ISSUER"
   const parts = assetString.split(':');
   if (parts.length !== 2) {
     throw new Error(`Invalid asset format: ${assetString}`);
@@ -105,9 +111,9 @@ function parseAssetFromReserve(assetString: string): Asset {
 const WalletContext = createContext<WalletContextValue | undefined>(undefined);
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-const [networkMode, setNetworkMode] = useState<NetworkMode>(
-  (localStorage.getItem('NETWORK_MODE') as NetworkMode) || 'public'
-);
+  const [networkMode, setNetworkMode] = useState<NetworkMode>(
+    (localStorage.getItem('NETWORK_MODE') as NetworkMode) || 'public'
+  );
   const cfg = getConfig(networkMode);
   const serverRef = useRef<any | null>(null);
   const serverCtorRef = useRef<any | null>(null);
@@ -385,7 +391,6 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
       setLoading(true);
       setError(null);
 
-      // Normalize amounts
       let normalizedMaxAmountA: string;
       let normalizedMaxAmountB: string;
 
@@ -405,27 +410,22 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
         throw new Error(`Invalid maxAmountB format: ${JSON.stringify(maxAmountB)}`);
       }
 
-      // Validate amounts
       if (isNaN(parseFloat(normalizedMaxAmountA)) || parseFloat(normalizedMaxAmountA) <= 0 ||
           isNaN(parseFloat(normalizedMaxAmountB)) || parseFloat(normalizedMaxAmountB) <= 0) {
         throw new Error('Amounts must be positive numbers');
       }
 
-      // Format amounts to 7 decimal places
       const formattedMaxAmountA = parseFloat(normalizedMaxAmountA).toFixed(7);
       const formattedMaxAmountB = parseFloat(normalizedMaxAmountB).toFixed(7);
 
-      // Build Asset instances
       const assetA = assetACode === 'XLM' ? Asset.native() : new Asset(assetACode, assetAIssuer);
       const assetB = assetBCode === 'XLM' ? Asset.native() : new Asset(assetBCode, assetBIssuer);
 
       let liquidityPoolId: string;
 
       if (poolId && /^[0-9a-f]{64}$/i.test(poolId)) {
-        // Use provided poolId if it's a valid 64-character hex string
         liquidityPoolId = poolId;
       } else {
-        // Fetch pool by assets
         const poolResponse = await serverRef.current
           .liquidityPools()
           .forAssets(assetA, assetB)
@@ -437,7 +437,6 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
         liquidityPoolId = poolResponse.records[0].id;
       }
 
-      // Fetch pool details
       const poolResponse = await serverRef.current
         .liquidityPools()
         .liquidityPoolId(liquidityPoolId)
@@ -447,7 +446,6 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
         throw new Error(`Invalid pool reserves for pool ID ${liquidityPoolId}`);
       }
 
-      // Parse assets from reserves using our helper function
       const reserve0Asset = parseAssetFromReserve(poolResponse.reserves[0].asset);
       const reserve1Asset = parseAssetFromReserve(poolResponse.reserves[1].asset);
 
@@ -455,22 +453,18 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
       let canonicalMaxAmountA = assetAMatches ? formattedMaxAmountA : formattedMaxAmountB;
       let canonicalMaxAmountB = assetAMatches ? formattedMaxAmountB : formattedMaxAmountA;
 
-      // Calculate price from deposit amounts (not from reserves)
       const exactPrice = parseFloat(canonicalMaxAmountA) / parseFloat(canonicalMaxAmountB);
-      const slippage = 0.10; // 10% tolerance (standard)
+      const slippage = 0.10;
       const minPrice = (exactPrice - (exactPrice * slippage)).toFixed(7);
       const maxPrice = (exactPrice + (exactPrice * slippage)).toFixed(7);
 
-      // Load account
       const account = await serverRef.current.loadAccount(publicKey);
       const freshBalances: BalanceLine[] = account.balances;
 
-      // Check pool share trustline
       const hasPoolShareTrustline = freshBalances.some(
         b => b.liquidity_pool_id === liquidityPoolId
       );
 
-      // Validate balances
       const balA = freshBalances.find(b =>
         (assetACode === 'XLM' && b.asset_type === 'native') ||
         (b.asset_code === assetACode && b.asset_issuer === assetAIssuer)
@@ -481,7 +475,6 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
         (b.asset_code === assetBCode && b.asset_issuer === assetBIssuer)
       )?.balance || '0';
 
-      // Check minimum XLM balance
       const numSubentries = account.subentry_count || 0;
       const futureSubentries = hasPoolShareTrustline ? numSubentries : numSubentries + 1;
       const minBalance = (2 + futureSubentries * 0.5 + 1);
@@ -498,7 +491,6 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
         throw new Error(`Insufficient ${assetBCode}. Available: ${balB}`);
       }
 
-      // Build transaction
       const kp = Keypair.fromSecret(secretKey);
       const fee = String(await serverRef.current.fetchBaseFee());
 
@@ -528,7 +520,6 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
         });
       }
 
-      // Add deposit operation
       builder = builder.addOperation(
         Operation.liquidityPoolDeposit({
           liquidityPoolId,
@@ -572,21 +563,17 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
       setLoading(true);
       setError(null);
 
-      // Validate pool ID
       if (!poolId || !/^[0-9a-f]{64}$/i.test(poolId)) {
         throw new Error('Invalid liquidity pool ID');
       }
 
-      // Validate shares amount
       const sharesNum = parseFloat(sharesAmount);
       if (isNaN(sharesNum) || sharesNum <= 0) {
         throw new Error('Shares amount must be a positive number');
       }
 
-      // Format shares amount to 7 decimal places
       const formattedSharesAmount = sharesNum.toFixed(7);
 
-      // Fetch pool details to calculate minimum amounts if not provided
       const poolResponse = await serverRef.current
         .liquidityPools()
         .liquidityPoolId(poolId)
@@ -598,7 +585,6 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
 
       const totalShares = parseFloat(poolResponse.total_shares);
 
-      // Calculate minimum amounts with 5% slippage tolerance if not provided
       let calculatedMinAmountA: string;
       let calculatedMinAmountB: string;
 
@@ -609,20 +595,16 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
         const reserveAAmount = parseFloat(poolResponse.reserves[0].amount);
         const reserveBAmount = parseFloat(poolResponse.reserves[1].amount);
         
-        // Calculate proportional withdrawal amounts
         const shareRatio = sharesNum / totalShares;
         const expectedAmountA = shareRatio * reserveAAmount;
         const expectedAmountB = shareRatio * reserveBAmount;
         
-        // Apply 5% slippage tolerance (accept 95% of expected)
         calculatedMinAmountA = (expectedAmountA * 0.95).toFixed(7);
         calculatedMinAmountB = (expectedAmountB * 0.95).toFixed(7);
       }
 
-      // Load account
       const account = await serverRef.current.loadAccount(publicKey);
 
-      // Check if user has pool shares
       const freshBalances: BalanceLine[] = account.balances;
       const poolBalance = freshBalances.find(
         b => b.asset_type === 'liquidity_pool_shares' && b.liquidity_pool_id === poolId
@@ -637,7 +619,6 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
         throw new Error(`Insufficient pool shares. Available: ${availableShares}, Requested: ${sharesNum}`);
       }
 
-      // Build transaction
       const kp = Keypair.fromSecret(secretKey);
       const fee = String(await serverRef.current.fetchBaseFee());
 
@@ -646,7 +627,6 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
         networkPassphrase: cfg.passphrase
       });
 
-      // Add withdraw operation
       builder.addOperation(
         Operation.liquidityPoolWithdraw({
           liquidityPoolId: poolId,
@@ -664,6 +644,125 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
         console.error('[leaveLiquidityPool] Result codes:', e.response.data.extras?.result_codes);
       }
       const errorMessage = e.message || 'Failed to leave liquidity pool';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const swapAssets = async ({
+    sourceAssetCode,
+    sourceAssetIssuer,
+    destAssetCode,
+    destAssetIssuer,
+    sendAmount,
+    destMin
+  }: {
+    sourceAssetCode: string;
+    sourceAssetIssuer: string | null;
+    destAssetCode: string;
+    destAssetIssuer: string | null;
+    sendAmount: string;
+    destMin: string;
+  }) => {
+    if (!secretKey || !publicKey) throw new Error('Wallet not loaded');
+    if (!serverRef.current) throw new Error('Server not initialized');
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (isNaN(parseFloat(sendAmount)) || parseFloat(sendAmount) <= 0) {
+        throw new Error('Send amount must be a positive number');
+      }
+      if (isNaN(parseFloat(destMin)) || parseFloat(destMin) <= 0) {
+        throw new Error('Minimum destination amount must be a positive number');
+      }
+
+      const sourceAsset = sourceAssetCode === 'XLM' 
+        ? Asset.native() 
+        : new Asset(sourceAssetCode, sourceAssetIssuer!);
+      
+      const destAsset = destAssetCode === 'XLM' 
+        ? Asset.native() 
+        : new Asset(destAssetCode, destAssetIssuer!);
+
+      const account = await serverRef.current.loadAccount(publicKey);
+      
+      const sourceBalance = account.balances.find((b: any) => 
+        (sourceAssetCode === 'XLM' && b.asset_type === 'native') ||
+        (b.asset_code === sourceAssetCode && b.asset_issuer === sourceAssetIssuer)
+      );
+
+      if (!sourceBalance) {
+        throw new Error(`You don't have a trustline for ${sourceAssetCode}`);
+      }
+
+      const availableBalance = parseFloat(sourceBalance.balance);
+      
+      let requiredAmount = parseFloat(sendAmount);
+      if (sourceAssetCode === 'XLM') {
+        const numSubentries = account.subentry_count || 0;
+        const minBalance = 2 + numSubentries * 0.5 + 0.5;
+        if (availableBalance - requiredAmount < minBalance) {
+          throw new Error(`Insufficient XLM. You need to keep at least ${minBalance.toFixed(2)} XLM as minimum balance. Available for swap: ${(availableBalance - minBalance).toFixed(7)}`);
+        }
+      } else {
+        if (availableBalance < requiredAmount) {
+          throw new Error(`Insufficient balance. Available: ${availableBalance}, Needed: ${sendAmount}`);
+        }
+      }
+
+      if (destAssetCode !== 'XLM') {
+        const destBalance = account.balances.find((b: any) => 
+          b.asset_code === destAssetCode && b.asset_issuer === destAssetIssuer
+        );
+
+        if (!destBalance) {
+          throw new Error(`You need to add a trustline for ${destAssetCode} before swapping`);
+        }
+      }
+
+      const fee = String(await serverRef.current.fetchBaseFee());
+      
+      const kp = Keypair.fromSecret(secretKey);
+      
+      const builder = new TransactionBuilder(account, {
+        fee,
+        networkPassphrase: cfg.passphrase
+      });
+
+      builder.addOperation(
+        Operation.pathPaymentStrictSend({
+          sendAsset: sourceAsset,
+          sendAmount: sendAmount,
+          destination: publicKey,
+          destAsset: destAsset,
+          destMin: destMin
+        })
+      );
+
+      await submitTx(builder, kp);
+
+      console.log('Swap successful!');
+    } catch (e: any) {
+      console.error('[swapAssets] Error:', e);
+      
+      let errorMessage = e.message || 'Failed to swap assets';
+      
+      if (e.response?.data?.extras?.result_codes) {
+        const codes = e.response.data.extras.result_codes;
+        
+        if (codes.operations?.includes('op_under_dest_min')) {
+          errorMessage = 'Swap failed: Amount received would be less than minimum specified. Try increasing slippage tolerance.';
+        } else if (codes.operations?.includes('op_too_few_offers')) {
+          errorMessage = 'Swap failed: Not enough liquidity available for this trade pair.';
+        } else if (codes.operations?.includes('op_over_source_max')) {
+          errorMessage = 'Swap failed: Would require more source asset than specified.';
+        }
+      }
+      
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -693,6 +792,7 @@ const [networkMode, setNetworkMode] = useState<NetworkMode>(
     removeTrustline,
     joinLiquidityPool,
     leaveLiquidityPool,
+    swapAssets,
     networkMode,
     setNetworkMode
   };

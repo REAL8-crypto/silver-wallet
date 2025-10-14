@@ -2,6 +2,52 @@
 
 All notable changes to the REAL8 Stellar Wallet project will be documented in this file.
 
+## [2.3.0] - 20251014
+
+### Added
+- **Asset Swap System**
+  - Complete on-chain asset swapping functionality using Stellar DEX
+  - New `SwapDialog` component with intuitive swap interface
+  - Real-time price discovery using Stellar's `strictSendPaths` API
+  - Automatic path finding through orderbooks and liquidity pools
+  - Configurable slippage tolerance (default 1%, adjustable 0.1-50%)
+  - Visual swap direction toggle with animated button
+  - "MAX" button with smart XLM reserve calculation
+  - Exchange rate display with minimum receive amount
+  - Swap between any assets in wallet with positive balances
+  - Success/error notifications with detailed feedback
+
+- **WalletContext Swap Functionality**
+  - New `swapAssets` method using `pathPaymentStrictSend` operation
+  - Automatic source balance validation (including XLM minimum reserve)
+  - Destination trustline verification before swap
+  - Comprehensive error handling with user-friendly messages
+  - Smart error detection for:
+    - Insufficient liquidity (`op_too_few_offers`)
+    - Slippage exceeded (`op_under_dest_min`)
+    - Over source maximum (`op_over_source_max`)
+
+### Changed
+- **Assets Management Interface**
+  - "Swap Assets" button now fully functional (was previously placeholder)
+  - Better integration between asset list and swap dialog
+  - Improved asset selection with balance display
+  - Enhanced UX with loading states during price fetching
+
+### Technical
+- Added `swapAssets` to `WalletContextValue` interface
+- Implemented price fetching with network mode awareness (testnet/public)
+- Real-time amount calculations using Stellar path payment API
+- Proper TypeScript types for swap operations
+- Smart XLM reserve handling (keeps minimum 3 XLM for fees/reserve)
+- Bilingual support (English/Spanish) for all swap UI elements
+
+### Developer Notes
+- Swap uses `Operation.pathPaymentStrictSend` for guaranteed send amounts
+- Stellar network automatically finds best path through DEX
+- Slippage protection calculated as: `minReceive = expectedAmount * (1 - slippage%)`
+- Dialog includes links to external DEXes (StellarX, StellarTerm, Lobstr) for reference
+
 ## [2.2.8] - 20251009
 
 ### Added
